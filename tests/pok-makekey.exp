@@ -1,0 +1,46 @@
+pok-makekey 
+usage: pok-makekey [-vqQf] keydir 
+100
+
+pok-makekey keydir
+pok-makekey: fatal: unable to create directory 'keydir' (file already exists)
+111
+
+pok-makekey -f keydir
+pok-makekey: fatal: unable to create directory 'keydir' (file already exists)
+111
+
+pok-makekey -f keydir
+pok-makekey: warning: knownrandombytes() is only for testing not for cryptographic use !!! 
+pok-makekey: fatal: unable to make directory 'keydir/public' (file already exists)
+111
+
+pok-makekey -f keydir
+pok-makekey: warning: knownrandombytes() is only for testing not for cryptographic use !!! 
+pok-makekey: fatal: unable to create file 'keydir/public/3112a32c7de663bf09bc7a73ade7a662b1b8f22df7fbbf50a1eaa2dd814870fa' (is a directory)
+111
+
+pok-makekey -f keydir
+pok-makekey: warning: knownrandombytes() is only for testing not for cryptographic use !!! 
+pok-makekey: info: mceliece6688128 public-key created 'keydir/public/3112a32c7de663bf09bc7a73ade7a662b1b8f22df7fbbf50a1eaa2dd814870fa' 
+pok-makekey: fatal: unable to make directory 'keydir/secret' (file already exists)
+111
+
+pok-makekey -f keydir
+pok-makekey: warning: knownrandombytes() is only for testing not for cryptographic use !!! 
+pok-makekey: info: mceliece6688128 public-key created 'keydir/public/3112a32c7de663bf09bc7a73ade7a662b1b8f22df7fbbf50a1eaa2dd814870fa' 
+pok-makekey: fatal: unable to create file 'keydir/secret/3112a32c7de663bf09bc7a73ade7a662b1b8f22df7fbbf50a1eaa2dd814870fa' (is a directory)
+111
+
+pok-makekey -v keydir
+pok-makekey: warning: knownrandombytes() is only for testing not for cryptographic use !!! 
+pok-makekey: info: mceliece6688128 public-key created 'keydir/public/3112a32c7de663bf09bc7a73ade7a662b1b8f22df7fbbf50a1eaa2dd814870fa' 
+pok-makekey: info: mceliece6688128 secret-key created 'keydir/secret/3112a32c7de663bf09bc7a73ade7a662b1b8f22df7fbbf50a1eaa2dd814870fa' 
+0
+
+pok-makekey -vf keydir
+pok-makekey: warning: knownrandombytes() is only for testing not for cryptographic use !!! 
+pok-makekey: info: mceliece6688128 public-key created 'keydir/public/3112a32c7de663bf09bc7a73ade7a662b1b8f22df7fbbf50a1eaa2dd814870fa' 
+pok-makekey: info: mceliece6688128 secret-key created 'keydir/secret/3112a32c7de663bf09bc7a73ade7a662b1b8f22df7fbbf50a1eaa2dd814870fa' 
+0
+

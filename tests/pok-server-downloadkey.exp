@@ -1,0 +1,5 @@
+pok-makekey: warning: knownrandombytes() is only for testing not for cryptographic use !!! 
+pok-makekey: info: mceliece6688128 public-key created 'pok-server-downloadkey-keydir/public/3112a32c7de663bf09bc7a73ade7a662b1b8f22df7fbbf50a1eaa2dd814870fa' 
+pok-makekey: info: mceliece6688128 secret-key created 'pok-server-downloadkey-keydir/secret/3112a32c7de663bf09bc7a73ade7a662b1b8f22df7fbbf50a1eaa2dd814870fa' 
+3112a32c7de663bf09bc7a73ade7a662b1b8f22df7fbbf50a1eaa2dd814870fa
+0
