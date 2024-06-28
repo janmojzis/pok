@@ -5,7 +5,10 @@ using UDP packets, which are encrypted by the XSalsa20 algorithm and
 authenticated by the Poly1305 algorithm.
 A variant of the [McTiny protocol](https://mctiny.org/) is used for key exchange.
 
+`warning: this is prototype`
+
 ## Build and run tests
+- needs libmceliece-dev, librandombytes-dev
 ```
 make
 make test
