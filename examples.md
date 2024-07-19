@@ -6,19 +6,19 @@
 pok-server -k /etc/tinyssh/pokkeydir 0.0.0.0 22 /usr/sbin/tinysshd -v /etc/tinyssh/sshkeydir &
 ~~~
 
+- copy public-key from the servers /etc/tinyssh/pokkeydir/... to local ~/.ssh/pokkeydir/...
+~~~bash
+mkdir -p ~/.ssh/pokkeydir/client/_YOUR_HOST_/remote/
+rsync -a '_YOUR_HOST_:/etc/tinyssh/pokkeydir/server/public/*' ~/.ssh/pokkeydir/client/_YOUR_HOST_/remote/
+~~~
+
 - update ssh client config '~/.ssh/config':
 ~~~
 Host _YOUR_HOST_
 ProxyCommand pok-client -k ~/.ssh/pokkeydir %h %p
 ~~~
 
-- copy public-key from the servers /etc/tinyssh/pokkeydir/... to local ~/.ssh/pokkeydir/...
-~~~
-mkdir -p ~/.ssh/pokkeydir/client/_YOUR_HOST_/remote/
-rsync -a _YOUR_HOST_:/etc/tinyssh/pokkeydir/server/public/* ~/.ssh/pokkeydir/client/_YOUR_HOST_/remote/
-~~~
-
 - try SSH connection
-~~~
+~~~bash
 ssh _YOUR_HOST_
 ~~~
