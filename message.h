@@ -3,13 +3,7 @@
 
 #include "log.h"
 
-/*
-1154 - minimal IPv6 MTU 1280
-1374 - standard IPv4 MTU 1500
-8874 - jumbo MTU 9000
-*/
-
-#define message_BLOCKBYTES 1154
+#define message_BLOCKBYTES 1108
 #define message_HEADERBYTES 32
 #define message_MAXBYTES (message_HEADERBYTES + message_BLOCKBYTES)
 

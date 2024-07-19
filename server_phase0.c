@@ -33,7 +33,7 @@ long long server_phase0(unsigned char *packet, long long packetlen) {
     }
 
     /* check packet length */
-    if (stack.mc.mctiny.query0bytes != packetlen) {
+    if (stack.mc.mctiny.query0bytes > packetlen) {
         log_w1("bad query0 length");
         goto cleanup;
     }

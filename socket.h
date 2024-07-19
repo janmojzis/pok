@@ -3,8 +3,9 @@
 
 #include <poll.h>
 
-/* space for jumbo datagram (MTU 9000) */
-#define socket_MAXBYTES 8972
+#define socket_MAXBYTES 8972 /* space for IPv4 jumbo datagram (MTU 9000) */
+#define socket_IPBYTES 16    /* space for IPv6 address */
+#define socket_PORTBYTES 2
 
 extern int socket_udp(void);
 extern int socket_pair(int *);

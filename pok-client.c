@@ -21,7 +21,7 @@
 #include "socket.h"
 #include "client.h"
 
-static const char *ktimeoutstr = "30";
+static const char *ktimeoutstr = "60";
 static long long ktimeout;
 static const char *stimeoutstr = "300";
 static long long stimeout;
@@ -41,6 +41,8 @@ static unsigned char packetip[16];
 static unsigned char packetport[2];
 static unsigned char packet[packet_MAXBYTES + 1];
 static long long packetlen;
+static unsigned char *packetnonce =
+    packet + mc_proto_MAGICBYTES + mc_proto_EXTENSIONBYTES;
 
 static struct g {
     unsigned char message[message_MAXBYTES + 1];
@@ -293,10 +295,13 @@ int main(int argc, char **argv) {
             if (!byte_isequal(packet, mc_proto_MAGICBYTES,
                               mc_proto_MAGICREPLYM))
                 break;
-            if (!byte_isequal(packet + mc_proto_MAGICBYTES +
-                                  mc_proto_EXTENSIONBYTES,
-                              16, c.id))
-                break;
+            if (!byte_isequal(packetnonce, 16, c.id)) break;
+
+            log_t8("replyM recv, nonce = ",
+                   log_hex(packetnonce, mc_proto_NONCEBYTES),
+                   ", ip = ", log_ip(packetip),
+                   ", port = ", log_port(packetport),
+                   ", len = ", log_num(packetlen));
 
             g.messagelen = client_replyM(&c, g.message, packet, packetlen);
             if (g.messagelen < message_HEADERBYTES) break;

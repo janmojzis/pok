@@ -1,6 +1,7 @@
 /*
 Taken from https://mctiny.org/software.html
 - reformated using clang-format
+- updated packet_MAXBYTES 1472
 */
 
 /* See packet.md for documentation. */
@@ -10,7 +11,7 @@ Taken from https://mctiny.org/software.html
 
 #define packet_KEYBYTES 32
 #define packet_NONCEBYTES 24
-#define packet_MAXBYTES 1252
+#define packet_MAXBYTES 1472
 
 extern void packet_clear(void);
 extern void packet_append(const unsigned char *, long long);

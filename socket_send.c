@@ -28,7 +28,9 @@ long long socket_send(int fd, const void *x, long long xlen,
     }
 
     r = sendto(fd, x, xlen, 0, sa, salen);
-    if (xlen > 0 && r > 0) ++packets;
+    if (r < 0) return -1;
+
+    ++packets;
     return r;
 }
 

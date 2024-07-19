@@ -136,8 +136,7 @@ int client_connect(struct client_connection *c, long long timeout) {
         /* receive packet */
         packetlen = socket_recv(pc.fd, packet, sizeof packet, pc.packetip,
                                 pc.packetport);
-        log_t4("reply recv, nonce = ", log_hex(packetnonce, sizeof packetnonce),
-               ", len = ", log_num(packetlen));
+        log_t2("reply recv, len = ", log_num(packetlen));
         if (packetlen < mc_proto_HEADERBYTES + mc_proto_AUTHBYTES) continue;
         if (packetlen > packet_MAXBYTES) continue;
         byte_copy(packetnonce, packet_NONCEBYTES,
@@ -146,8 +145,10 @@ int client_connect(struct client_connection *c, long long timeout) {
         if (packetlen == c->mc.mctiny.reply0bytes) {
             if (byte_isequal(packet, mc_proto_MAGICBYTES,
                              mc_proto_MAGICREPLY0)) {
-                log_t4("reply0 recv, nonce = ",
+                log_t8("reply0 recv, nonce = ",
                        log_hex(packetnonce, sizeof packetnonce),
+                       ", ip = ", log_ip(pc.packetip),
+                       ", port = ", log_port(pc.packetport),
                        ", len = ", log_num(packetlen));
                 client_reply0(&pc, packet, packetlen);
             }
@@ -155,8 +156,10 @@ int client_connect(struct client_connection *c, long long timeout) {
         if (packetlen == c->mc.mctiny.reply1bytes) {
             if (byte_isequal(packet, mc_proto_MAGICBYTES,
                              mc_proto_MAGICREPLY1)) {
-                log_t4("reply1 recv, nonce = ",
+                log_t8("reply1 recv, nonce = ",
                        log_hex(packetnonce, sizeof packetnonce),
+                       ", ip = ", log_ip(pc.packetip),
+                       ", port = ", log_port(pc.packetport),
                        ", len = ", log_num(packetlen));
                 client_reply1(&pc, packet, packetlen);
             }
@@ -164,8 +167,10 @@ int client_connect(struct client_connection *c, long long timeout) {
         if (packetlen == c->mc.mctiny.reply2bytes) {
             if (byte_isequal(packet, mc_proto_MAGICBYTES,
                              mc_proto_MAGICREPLY2)) {
-                log_t4("reply2 recv, nonce = ",
+                log_t8("reply2 recv, nonce = ",
                        log_hex(packetnonce, sizeof packetnonce),
+                       ", ip = ", log_ip(pc.packetip),
+                       ", port = ", log_port(pc.packetport),
                        ", len = ", log_num(packetlen));
                 client_reply2(&pc, packet, packetlen);
             }
@@ -173,8 +178,10 @@ int client_connect(struct client_connection *c, long long timeout) {
         if (packetlen == c->mc.mctiny.reply3bytes) {
             if (byte_isequal(packet, mc_proto_MAGICBYTES,
                              mc_proto_MAGICREPLY3)) {
-                log_t4("reply3 recv, nonce = ",
+                log_t8("reply3 recv, nonce = ",
                        log_hex(packetnonce, sizeof packetnonce),
+                       ", ip = ", log_ip(pc.packetip),
+                       ", port = ", log_port(pc.packetport),
                        ", len = ", log_num(packetlen));
                 client_reply3(&pc, packet, packetlen);
             }
@@ -182,16 +189,19 @@ int client_connect(struct client_connection *c, long long timeout) {
     }
 
     /* done */
-    mc_dec(&pc.mc, pc.key, pc.ciphertext, pc.clientsk);
-    mceliece_xof_shake256(pc.key, sizeof pc.key, pc.key, packet_KEYBYTES);
-    byte_copy(c->clientkey, packet_KEYBYTES, pc.key);
-    byte_copy(c->serverkey, packet_KEYBYTES, pc.key + packet_KEYBYTES);
-    c->clientnonce = randommod(281474976710656LL);
-    c->servernonce = 0;
-    c->receivedtm = 0;
-    byte_copy(c->ip, 16, pc.serverip);
-    byte_copy(c->id, 16, pc.longtermnonce);
     ret = pc.flagcookie9;
+    if (ret) {
+        mc_dec(&pc.mc, pc.key, pc.ciphertext, pc.clientsk);
+        mceliece_xof_shake256(pc.key, sizeof pc.key, pc.key, packet_KEYBYTES);
+        byte_copy(c->clientkey, packet_KEYBYTES, pc.key);
+        byte_copy(c->serverkey, packet_KEYBYTES, pc.key + packet_KEYBYTES);
+        c->clientnonce = randommod(281474976710656LL);
+        c->servernonce = 0;
+        c->receivedtm = 0;
+        byte_copy(c->ip, 16, pc.serverip);
+        byte_copy(c->port, 2, pc.serverport);
+        byte_copy(c->id, 16, pc.longtermnonce);
+    }
 
     byte_zero(&pc, sizeof pc);
     return ret;

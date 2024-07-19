@@ -1,5 +1,5 @@
 CC?=cc
-CFLAGS+=-W -Wall -Os -fPIC -fwrapv -pedantic -DSOCKET_QUEUE=1
+CFLAGS+=-W -Wall -Os -fPIC -fwrapv -pedantic
 LDFLAGS+=-lmceliece -lrandombytes
 
 BINARIES=pok-client
@@ -82,7 +82,8 @@ dupforkexec.o: dupforkexec.c log.h blocking.h dupforkexec.h
 e.o: e.c e.h
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c e.c
 
-extension.o: extension.c parseip.h byte.h mc.h mc_variants.h extension.h
+extension.o: extension.c parseip.h parseport.h byte.h mc.h mc_variants.h \
+ extension.h
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c extension.c
 
 log.o: log.c e.h log.h
@@ -159,8 +160,8 @@ pok-makekey.o: pok-makekey.c open.h writeall.h mc.h mc_variants.h log.h
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c pok-makekey.c
 
 pok-server.o: pok-server.c nk.h seconds.h byte.h open.h randommod.h \
- server.h extension.h mc.h mc_variants.h packet.h message.h log.h \
- parseip.h parsenum.h parseport.h blocking.h writeall.h socket.h
+ server.h message.h log.h parseip.h parsenum.h parseport.h blocking.h \
+ writeall.h packet.h socket.h mc.h mc_variants.h
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c pok-server.c
 
 randommod.o: randommod.c randommod.h
@@ -172,25 +173,26 @@ resolvehost.o: resolvehost.c e.h log.h randommod.h resolvehost.h
 seconds.o: seconds.c seconds.h
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c seconds.c
 
+server_child.o: server_child.c e.h socket.h message.h log.h server.h \
+ seconds.h byte.h randommod.h uint64_pack.h uint64_unpack.h mc.h \
+ mc_variants.h packet.h
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c server_child.c
+
 server_phase0.o: server_phase0.c byte.h log.h nk.h mc.h mc_variants.h \
- packet.h server.h extension.h
+ packet.h server.h
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c server_phase0.c
 
 server_phase1.o: server_phase1.c packet.h byte.h log.h nk.h mc.h \
- mc_variants.h server.h extension.h
+ mc_variants.h server.h
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c server_phase1.c
 
 server_phase2.o: server_phase2.c packet.h byte.h log.h nk.h mc.h \
- mc_variants.h server.h extension.h
+ mc_variants.h server.h
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c server_phase2.c
 
 server_phase3.o: server_phase3.c packet.h byte.h log.h nk.h mc.h \
- mc_variants.h server.h extension.h
+ mc_variants.h server.h
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c server_phase3.c
-
-server_phaseM.o: server_phaseM.c packet.h byte.h uint64_pack.h \
- uint64_unpack.h seconds.h log.h server.h extension.h mc.h mc_variants.h
-	$(CC) $(CFLAGS) $(CPPFLAGS) -c server_phaseM.c
 
 socket_bind.o: socket_bind.c socket.h
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c socket_bind.c
@@ -291,11 +293,11 @@ OBJECTS+=parseport.o
 OBJECTS+=randommod.o
 OBJECTS+=resolvehost.o
 OBJECTS+=seconds.o
+OBJECTS+=server_child.o
 OBJECTS+=server_phase0.o
 OBJECTS+=server_phase1.o
 OBJECTS+=server_phase2.o
 OBJECTS+=server_phase3.o
-OBJECTS+=server_phaseM.o
 OBJECTS+=socket_bind.o
 OBJECTS+=socket_close.o
 OBJECTS+=socket_enqueue.o

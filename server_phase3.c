@@ -40,7 +40,7 @@ long long server_phase3(unsigned char *key, unsigned char *packet,
     }
 
     /* check packet length */
-    if (stack.mc.mctiny.query3bytes != packetlen) {
+    if (stack.mc.mctiny.query3bytes > packetlen) {
         log_w1("bad query3 length");
         goto cleanup;
     }
@@ -60,7 +60,7 @@ long long server_phase3(unsigned char *key, unsigned char *packet,
 
     /* decrypt query3 */
     packet_incoming(packet + mc_proto_HEADERBYTES,
-                    packetlen - mc_proto_HEADERBYTES);
+                    stack.mc.mctiny.query3bytes - mc_proto_HEADERBYTES);
     if (packet_decrypt(stack.nonce, stack.key123) != 0) {
         log_w1("unable to decrypt query3 packet");
         goto cleanup;

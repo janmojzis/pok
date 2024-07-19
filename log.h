@@ -67,6 +67,17 @@ extern void log_9_(int, int, const char *, unsigned long long, const char *,
 #define log_b3(a, b, c) log_b4(a, b, c, 0)
 #define log_b2(a, b) log_b3(a, b, 0)
 #define log_b1(a) log_b2(a, 0)
+#define log_B9(a, b, c, d, e, f, g, h, i, j, k)                                \
+    log_b(a, b, c, d, e, f, g, h, i, j, k)
+#define log_B8(a, b, c, d, e, f, g, h, i, j)                                   \
+    log_B9(a, b, c, d, e, f, g, h, i, j, 0)
+#define log_B7(a, b, c, d, e, f, g, h, i) log_B8(a, b, c, d, e, f, g, h, i, 0)
+#define log_B6(a, b, c, d, e, f, g, h) log_B7(a, b, c, d, e, f, g, h, 0)
+#define log_B5(a, b, c, d, e, f, g) log_B6(a, b, c, d, e, f, g, 0)
+#define log_B4(a, b, c, d, e, f) log_B5(a, b, c, d, e, f, 0)
+#define log_B3(a, b, c, d, e) log_B4(a, b, c, d, e, 0)
+#define log_B2(a, b, c, d) log_B3(a, b, c, d, 0)
+#define log_B1(a, b, c) log_B2(a, b, c, 0)
 
 /* fatal */
 #define log_f(a, b, c, d, e, f, g, h, i, j, k)                                 \
@@ -101,6 +112,17 @@ extern void log_9_(int, int, const char *, unsigned long long, const char *,
 #define log_e3(a, b, c) log_e4(a, b, c, 0)
 #define log_e2(a, b) log_e3(a, b, 0)
 #define log_e1(a) log_e2(a, 0)
+#define log_E9(a, b, c, d, e, f, g, h, i, j, k)                                \
+    log_e(a, b, c, d, e, f, g, h, i, j, k)
+#define log_E8(a, b, c, d, e, f, g, h, i, j)                                   \
+    log_E9(a, b, c, d, e, f, g, h, i, j, 0)
+#define log_E7(a, b, c, d, e, f, g, h, i) log_E8(a, b, c, d, e, f, g, h, i, 0)
+#define log_E6(a, b, c, d, e, f, g, h) log_E7(a, b, c, d, e, f, g, h, 0)
+#define log_E5(a, b, c, d, e, f, g) log_E6(a, b, c, d, e, f, g, 0)
+#define log_E4(a, b, c, d, e, f) log_E5(a, b, c, d, e, f, 0)
+#define log_E3(a, b, c, d, e) log_E4(a, b, c, d, e, 0)
+#define log_E2(a, b, c, d) log_E3(a, b, c, d, 0)
+#define log_E1(a, b, c) log_E2(a, b, c, 0)
 
 /* warning */
 #define log_w(a, b, c, d, e, f, g, h, i, j, k)                                 \
@@ -152,6 +174,17 @@ extern void log_9_(int, int, const char *, unsigned long long, const char *,
 #define log_d3(a, b, c) log_d4(a, b, c, 0)
 #define log_d2(a, b) log_d3(a, b, 0)
 #define log_d1(a) log_d2(a, 0)
+#define log_D9(a, b, c, d, e, f, g, h, i, j, k)                                \
+    log_d(a, b, c, d, e, f, g, h, i, j, k)
+#define log_D8(a, b, c, d, e, f, g, h, i, j)                                   \
+    log_D9(a, b, c, d, e, f, g, h, i, j, 0)
+#define log_D7(a, b, c, d, e, f, g, h, i) log_D8(a, b, c, d, e, f, g, h, i, 0)
+#define log_D6(a, b, c, d, e, f, g, h) log_D7(a, b, c, d, e, f, g, h, 0)
+#define log_D5(a, b, c, d, e, f, g) log_D6(a, b, c, d, e, f, g, 0)
+#define log_D4(a, b, c, d, e, f) log_D5(a, b, c, d, e, f, 0)
+#define log_D3(a, b, c, d, e) log_D4(a, b, c, d, e, 0)
+#define log_D2(a, b, c, d) log_D3(a, b, c, d, 0)
+#define log_D1(a, b, c) log_D2(a, b, c, 0)
 
 /* tracing */
 #define log_t(a, b, c, d, e, f, g, h, i, j, k)                                 \

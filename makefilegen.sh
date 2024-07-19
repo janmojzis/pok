@@ -3,7 +3,7 @@
 (
   (
     echo "CC?=cc"
-    echo "CFLAGS+=-W -Wall -Os -fPIC -fwrapv -pedantic -DSOCKET_QUEUE=1"
+    echo "CFLAGS+=-W -Wall -Os -fPIC -fwrapv -pedantic"
     echo "LDFLAGS+=-lmceliece -lrandombytes"
     echo 
 

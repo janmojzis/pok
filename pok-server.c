@@ -19,8 +19,16 @@
 #include "socket.h"
 #include "mc.h"
 
+#include <string.h>
+
+struct activeclient {
+    pid_t child;
+    int s;
+    unsigned char id[16];
+};
+
 #define MAXCLIENTS 256
-static struct server_activeclient activeclients[MAXCLIENTS];
+static struct activeclient activeclients[MAXCLIENTS];
 static long long numactiveclients = 0;
 
 /*
@@ -30,9 +38,7 @@ struct g {
     unsigned char key[2 * packet_KEYBYTES];
     unsigned char packetnonce[packet_NONCEBYTES];
     unsigned char packetextension[mc_proto_EXTENSIONBYTES];
-    unsigned char message[message_MAXBYTES + 1];
-    long long messagelen;
-    unsigned char packet[packet_MAXBYTES + 1];
+    unsigned char packet[packet_MAXBYTES + 1 + 18];
     long long packetlen;
     unsigned char packetip[16];
     unsigned char packetport[2];
@@ -84,6 +90,43 @@ static void signalhandler(int sig) {
         return;
     }
     else { flagexitasap = 1; }
+}
+
+static void server_enqueue(int fd, unsigned char *x, long long xlen,
+                           unsigned char *ip, unsigned char *port) {
+
+    long long r;
+    unsigned char *nonce = x + mc_proto_MAGICBYTES + mc_proto_EXTENSIONBYTES;
+    char reply[7] = "replyX";
+
+    if (xlen < mc_proto_HEADERBYTES) return;
+
+    r = socket_enqueue(fd, x, xlen, ip, port);
+
+    reply[5] = x[7];
+    log_t9(reply, " send, nonce = ", log_hex(nonce, mc_proto_NONCEBYTES),
+           ", ip = ", log_ip(ip), ", port = ", log_port(port),
+           ", len = ", log_num(r));
+}
+
+static long long server_recv(int fd, unsigned char *x, long long xlen,
+                             unsigned char *ip, unsigned char *port) {
+    long long r;
+    unsigned char *nonce = x + mc_proto_MAGICBYTES + mc_proto_EXTENSIONBYTES;
+    char query[7] = "queryX";
+
+    r = socket_recv(fd, x, xlen, ip, port);
+    if (r < mc_proto_HEADERBYTES + mc_proto_AUTHBYTES) return -1;
+    if (r > packet_MAXBYTES) return -1;
+    if (!byte_isequal(g.packet, mc_proto_MAGICBYTES - 1, mc_proto_MAGICQUERY))
+        return -1;
+
+    query[5] = x[7];
+    log_t9(query, " received, nonce = ", log_hex(nonce, mc_proto_NONCEBYTES),
+           ", ip = ", log_ip(ip), ", port = ", log_port(port),
+           ", len = ", log_num(r));
+
+    return r;
 }
 
 int main(int argc, char **argv) {
@@ -223,37 +266,35 @@ int main(int argc, char **argv) {
             char ch;
             int status;
             pid_t pid;
+            long long dummy;
 
             if (!p[numactiveclients + 1].revents) break;
-            read(selfpipe[0], &ch, 1);
+            dummy = read(selfpipe[0], &ch, 1);
+            (void) dummy;
 
             pid = waitpid(-1, &status, WNOHANG);
             if (pid <= 0) break;
 
             for (i = numactiveclients - 1; i >= 0; --i) {
                 if (pid != activeclients[i].child) continue;
-                log_set_id_hex(activeclients[i].nonce, 16);
+                log_set_id_hex(activeclients[i].id, 16);
                 log_d1("finished connection");
                 log_unset_id();
                 socket_close(activeclients[i].s);
                 --numactiveclients;
                 activeclients[i] = activeclients[numactiveclients];
-                byte_zero((void *) &activeclients[numactiveclients],
-                          sizeof(struct server_activeclient));
+                byte_zero(&activeclients[numactiveclients],
+                          sizeof(struct activeclient));
                 break;
             }
         } while (1);
 
         do {
             if (!(p[numactiveclients].revents & POLLIN)) break;
-            g.packetlen = socket_recv(udpfd, g.packet, sizeof g.packet,
+            g.packetlen = server_recv(udpfd, g.packet, sizeof g.packet,
                                       g.packetip, g.packetport);
             if (g.packetlen < 0) break;
-            if (g.packetlen < mc_proto_HEADERBYTES + mc_proto_AUTHBYTES) break;
-            if (g.packetlen > packet_MAXBYTES) break;
-            if (!byte_isequal(g.packet, mc_proto_MAGICBYTES - 1,
-                              mc_proto_MAGICQUERY))
-                break;
+
             byte_copy(g.packet, 7, mc_proto_MAGICREPLY);
             byte_copy(g.packetextension, mc_proto_EXTENSIONBYTES,
                       g.packet + mc_proto_MAGICBYTES);
@@ -263,69 +304,38 @@ int main(int argc, char **argv) {
             log_set_id_hex((void *) "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", 16);
 
             if (g.packet[7] == '0') {
-
-                log_t4("query0 recv, nonce = ",
-                       log_hex(g.packetnonce, mc_proto_NONCEBYTES),
-                       ", len = ", log_num(g.packetlen));
                 g.packetlen = server_phase0(g.packet, g.packetlen);
                 if (g.packetlen < 0) break;
-                g.packetlen = socket_enqueue(udpfd, g.packet, g.packetlen,
-                                             g.packetip, g.packetport);
-                log_t4("reply0 send, nonce = ",
-                       log_hex(g.packet + mc_proto_MAGICBYTES +
-                                   mc_proto_EXTENSIONBYTES,
-                               mc_proto_NONCEBYTES),
-                       ", len = ", log_num(g.packetlen));
+                server_enqueue(udpfd, g.packet, g.packetlen, g.packetip,
+                               g.packetport);
                 break;
             }
 
             log_set_id_hex(g.packetnonce, 16);
 
             if (g.packet[7] == '1') {
-
-                log_t4("query1 recv, nonce = ",
-                       log_hex(g.packetnonce, mc_proto_NONCEBYTES),
-                       ", len = ", log_num(g.packetlen));
                 g.packetlen = server_phase1(g.packet, g.packetlen);
                 if (g.packetlen < 0) break;
-                g.packetlen = socket_enqueue(udpfd, g.packet, g.packetlen,
-                                             g.packetip, g.packetport);
-                log_t4("reply1 send, nonce = ",
-                       log_hex(g.packet + mc_proto_MAGICBYTES +
-                                   mc_proto_EXTENSIONBYTES,
-                               mc_proto_NONCEBYTES),
-                       ", len = ", log_num(g.packetlen));
+                server_enqueue(udpfd, g.packet, g.packetlen, g.packetip,
+                               g.packetport);
                 break;
             }
 
             if (g.packet[7] == '2') {
-
-                log_t4("query2 recv, nonce = ",
-                       log_hex(g.packetnonce, mc_proto_NONCEBYTES),
-                       ", len = ", log_num(g.packetlen));
                 g.packetlen = server_phase2(g.packet, g.packetlen);
                 if (g.packetlen < 0) break;
 
-                g.packetlen = socket_enqueue(udpfd, g.packet, g.packetlen,
-                                             g.packetip, g.packetport);
-                log_t4("reply2 send, nonce = ",
-                       log_hex(g.packet + mc_proto_MAGICBYTES +
-                                   mc_proto_EXTENSIONBYTES,
-                               mc_proto_NONCEBYTES),
-                       ", len = ", log_num(g.packetlen));
+                server_enqueue(udpfd, g.packet, g.packetlen, g.packetip,
+                               g.packetport);
                 break;
             }
 
             if (g.packet[7] == '3') {
-
-                log_t4("query3 recv, nonce = ",
-                       log_hex(g.packetnonce, mc_proto_NONCEBYTES),
-                       ", len = ", log_num(g.packetlen));
                 g.packetlen = server_phase3(g.key, g.packet, g.packetlen);
                 if (g.packetlen < 0) break;
 
                 for (i = 0; i < numactiveclients; ++i) {
-                    if (byte_isequal(activeclients[i].nonce, 16, g.packetnonce))
+                    if (byte_isequal(activeclients[i].id, 16, g.packetnonce))
                         break;
                 }
 
@@ -338,9 +348,11 @@ int main(int argc, char **argv) {
                     }
 
                     if (socket_pair(s) == -1) {
-                        log_f1("socketpair() failed");
+                        log_f1("socket_pair() failed");
                         break;
                     }
+
+                    log_d1("starting connection");
 
                     activeclients[i].child = fork();
                     if (activeclients[i].child == -1) {
@@ -361,41 +373,24 @@ int main(int argc, char **argv) {
                         signal(SIGTERM, SIG_DFL);
                         signal(SIGUSR1, SIG_DFL);
                         signal(SIGUSR2, SIG_DFL);
-                        message(s[1], argv, stimeout);
+                        server_child(g.packetip, g.packetport, g.packetnonce,
+                                     g.packetextension, g.key, s[1], argv,
+                                     stimeout);
                         die(111);
                     }
                     socket_close(s[1]);
 
+                    byte_copy(activeclients[i].id, 16, g.packetnonce);
                     activeclients[i].s = s[0];
-                    byte_copy(activeclients[i].nonce, 16, g.packetnonce);
-                    byte_copy(activeclients[i].clientip, 16, g.packetip);
-                    byte_copy(activeclients[i].clientport, 2, g.packetport);
-                    byte_copy(activeclients[i].extension, 32,
-                              g.packetextension);
-                    byte_copy(activeclients[i].clientkey, packet_KEYBYTES,
-                              g.key);
-                    byte_copy(activeclients[i].serverkey, packet_KEYBYTES,
-                              g.key + packet_KEYBYTES);
-                    activeclients[i].servernonce = randommod(281474976710656LL);
-                    log_d1("starting connection");
                     ++numactiveclients;
                 }
 
-                g.packetlen = socket_enqueue(udpfd, g.packet, g.packetlen,
-                                             g.packetip, g.packetport);
-                log_t4("reply3 send, nonce = ",
-                       log_hex(g.packet + mc_proto_MAGICBYTES +
-                                   mc_proto_EXTENSIONBYTES,
-                               mc_proto_NONCEBYTES),
-                       ", len = ", log_num(g.packetlen));
+                server_enqueue(udpfd, g.packet, g.packetlen, g.packetip,
+                               g.packetport);
                 break;
             }
 
             if (g.packet[7] == 'M') {
-
-                log_t4("queryM recv, nonce = ",
-                       log_hex(g.packetnonce, mc_proto_NONCEBYTES),
-                       ", len = ", log_num(g.packetlen));
                 if (g.packetlen <
                     (message_HEADERBYTES + mc_proto_HEADERBYTES)) {
                     log_w3("packet len = ", log_num(g.packetlen),
@@ -404,7 +399,7 @@ int main(int argc, char **argv) {
                 }
 
                 for (i = 0; i < numactiveclients; ++i) {
-                    if (byte_isequal(activeclients[i].nonce, 16, g.packetnonce))
+                    if (byte_isequal(activeclients[i].id, 16, g.packetnonce))
                         break;
                 }
 
@@ -414,12 +409,13 @@ int main(int argc, char **argv) {
                 }
                 if (i >= numactiveclients) break;
 
-                g.messagelen = server_queryM(&activeclients[i], g.message,
-                                             g.packet, g.packetlen, g.packetip,
-                                             g.packetport, g.packetextension);
-                if (g.messagelen < 0) break;
-                socket_enqueue(activeclients[i].s, g.message, g.messagelen, 0,
-                               0);
+                /* XXX */
+                memmove(g.packet + 18, g.packet, g.packetlen);
+                byte_copy(g.packet, 16, g.packetip);
+                byte_copy(g.packet + 16, 2, g.packetport);
+
+                socket_enqueue(activeclients[i].s, g.packet, g.packetlen + 18,
+                               0, 0);
                 break;
             }
 
@@ -428,37 +424,34 @@ int main(int argc, char **argv) {
         for (i = numactiveclients - 1; i >= 0; --i) {
             do {
                 if (!(p[i].revents & POLLIN)) break;
-                g.messagelen = socket_recv(activeclients[i].s, g.message,
-                                           sizeof g.message, 0, 0);
-                if (g.messagelen == -1) {
+                g.packetlen = socket_recv(activeclients[i].s, g.packet,
+                                          sizeof g.packet, 0, 0);
+                if (g.packetlen == -1) {
                     if (socket_temperror()) break;
                     /* child is gone */
                     break;
                 }
-                if (g.messagelen < message_HEADERBYTES) {
-                    log_b4("received message too small, messagelen ",
-                           log_num(g.messagelen), " < ",
-                           log_num(message_HEADERBYTES));
+                if (g.packetlen - 18 <
+                    (message_HEADERBYTES + mc_proto_HEADERBYTES)) {
+                    log_w4("received packet too small, packetlen ",
+                           log_num(g.packetlen), " < ",
+                           log_num(message_HEADERBYTES + mc_proto_HEADERBYTES));
                     break;
                 }
-                if (g.messagelen > message_MAXBYTES) {
-                    log_b4("received message too large, messagelen ",
-                           log_num(g.messagelen), " > ",
-                           log_num(message_MAXBYTES));
+                if (g.packetlen - 18 > packet_MAXBYTES) {
+                    log_w4("received packet too large, packetlen ",
+                           log_num(g.packetlen), " > ",
+                           log_num(packet_MAXBYTES));
                     break;
                 }
 
-                g.packetlen = server_replyM(&activeclients[i], g.packet,
-                                            g.message, g.messagelen);
-                if (g.packetlen < 0) break;
-                g.packetlen = socket_enqueue(udpfd, g.packet, g.packetlen,
-                                             activeclients[i].clientip,
-                                             activeclients[i].clientport);
-                log_t4("replyM send, nonce = ",
-                       log_hex(g.packet + mc_proto_MAGICBYTES +
-                                   mc_proto_EXTENSIONBYTES,
-                               mc_proto_NONCEBYTES),
-                       ", len = ", log_num(g.packetlen));
+                byte_copy(g.packetip, 16, g.packet);
+                byte_copy(g.packetport, 2, g.packet + 16);
+                byte_copy(g.packet, g.packetlen - 18, g.packet + 18);
+                g.packetlen -= 18;
+
+                server_enqueue(udpfd, g.packet, g.packetlen, g.packetip,
+                               g.packetport);
             } while (0);
         }
     }

@@ -42,7 +42,7 @@ long long server_phase2(unsigned char *packet, long long packetlen) {
     }
 
     /* check packet length */
-    if (stack.mc.mctiny.query2bytes != packetlen) {
+    if (stack.mc.mctiny.query2bytes > packetlen) {
         log_w1("bad query2 length");
         goto cleanup;
     }
@@ -69,7 +69,7 @@ long long server_phase2(unsigned char *packet, long long packetlen) {
 
     /* decrypt query2 */
     packet_incoming(packet + mc_proto_HEADERBYTES,
-                    packetlen - mc_proto_HEADERBYTES);
+                    stack.mc.mctiny.query2bytes - mc_proto_HEADERBYTES);
     if (packet_decrypt(stack.nonce, stack.key123) != 0) {
         log_w1("unable to decrypt query2 packet");
         goto cleanup;

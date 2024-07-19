@@ -405,9 +405,8 @@ void message(int s, char **argv, long long stimeout) {
         }
 
         if (when < 0.0) when = 0.0;
-        if (socket_poll_and_dequeue(p, q - p, 1000 * when) < 0) {
+        if (socket_poll_and_dequeue(p, q - p, 1000 * when) <= 0) {
             watchfromserver = watchfromchild = watchtochild = 0;
-            log_w1("poll failed");
         }
         else {
             if (watchfromchild)

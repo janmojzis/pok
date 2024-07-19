@@ -1,5 +1,5 @@
 /*
-20240625
+20240716
 
 The 'log' library is used to write log messages to standard error output.
 Non-printable characters are escaped.

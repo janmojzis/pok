@@ -17,3 +17,8 @@ ProxyCommand pok-client -k ~/.ssh/pokkeydir %h %p
 mkdir -p ~/.ssh/pokkeydir/client/_YOUR_HOST_/remote/
 rsync -a _YOUR_HOST_:/etc/tinyssh/pokkeydir/server/public/* ~/.ssh/pokkeydir/client/_YOUR_HOST_/remote/
 ~~~
+
+- try SSH connection
+~~~
+ssh _YOUR_HOST_
+~~~

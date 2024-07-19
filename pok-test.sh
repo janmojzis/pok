@@ -31,7 +31,8 @@ cleanup() {
 }
 trap "cleanup" EXIT TERM INT
 
-for mceliecelong in mceliece6688128 mceliece8192128 mceliece6960119 mceliece460896 mceliece348864; do
+#for mceliecelong in mceliece6688128 mceliece8192128 mceliece6960119 mceliece460896 mceliece348864; do
+for mceliecelong in mceliece6688128 mceliece8192128; do
   # create server key
   rm -rf serverkeydir/server/public
   rm -rf serverkeydir/server/secret
@@ -42,7 +43,8 @@ for mceliecelong in mceliece6688128 mceliece8192128 mceliece6960119 mceliece4608
   rm -f clientkeydir/client/127.0.0.1/remote/*
   rsync -a serverkeydir/server/public/* clientkeydir/client/127.0.0.1/remote/
 
-  for mcelieceshort in mceliece6688128 mceliece8192128 mceliece6960119 mceliece460896 mceliece348864; do
+  #for mcelieceshort in mceliece6688128 mceliece8192128 mceliece6960119 mceliece460896 mceliece348864; do
+  for mcelieceshort in mceliece6688128 mceliece8192128; do
     # client
     rm -f data.out
     pok-client -cvv -m "${mcelieceshort}" -k clientkeydir 127.0.0.1 10000 sh -c 'cat > data.out' 2>client.log

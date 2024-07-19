@@ -18,25 +18,25 @@
 #define mc_proto_MAGICREPLY3 "PoKv0dR3"
 #define mc_proto_MAGICREPLYM "PoKv0dRM"
 #define mc_proto_MAGICBYTES 8
-#define mc_proto_EXTENSIONBYTES 18
+#define mc_proto_EXTENSIONBYTES 32
 #define mc_proto_NONCEBYTES 24
-#define mc_proto_HEADERBYTES 50
+#define mc_proto_HEADERBYTES 64
 
 #define mc_proto_AUTHBYTES 16
 #define mc_mctiny_NMAX 8192
 #define mc_mctiny_TMAX 128
-#define mc_mctiny_VMAX 8
-#define mc_mctiny_XBYTESMAX 91
+#define mc_mctiny_VMAX 10
+#define mc_mctiny_XBYTESMAX 60
 #define mc_mctiny_YBYTESMAX 5
 #define mc_mctiny_EBYTESMAX 1024
-#define mc_mctiny_BLOCKBYTESMAX 1184
+#define mc_mctiny_BLOCKBYTESMAX 1392
 #define mc_mctiny_COOKIEBLOCKBYTESMAX 21
-#define mc_mctiny_ROWBLOCKSMAX 128
-#define mc_mctiny_COLBLOCKSMAX 18
-#define mc_mctiny_PIECESMAX 19
-#define mc_mctiny_PIECEBYTESMAX 24
+#define mc_mctiny_ROWBLOCKSMAX 78
+#define mc_mctiny_COLBLOCKSMAX 21
+#define mc_mctiny_PIECESMAX 22
+#define mc_mctiny_PIECEBYTESMAX 25
 #define mc_mctiny_COLBYTESMAX 208
-#define mc_mctiny_QUERY0BYTES 850
+#define mc_mctiny_QUERY0BYTES 864
 
 struct mc_mctiny {
     long long mmask;

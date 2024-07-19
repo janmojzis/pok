@@ -38,13 +38,22 @@ static void exitasap(int sig) {
     flagexitasap = 1;
 }
 
-static void swap(unsigned char *x, unsigned char *y) {
+static void swapip(unsigned char *x, unsigned char *y) {
 
     unsigned char t[16];
 
     byte_copy(t, 16, x);
     byte_copy(x, 16, y);
     byte_copy(y, 16, t);
+}
+
+static void swapport(unsigned char *x, unsigned char *y) {
+
+    unsigned char t[2];
+
+    byte_copy(t, 2, x);
+    byte_copy(x, 2, y);
+    byte_copy(y, 2, t);
 }
 
 int main(int argc, char **argv) {
@@ -127,15 +136,16 @@ int main(int argc, char **argv) {
 
             if (byte_isequal(packet, mc_proto_MAGICBYTES - 1,
                              mc_proto_MAGICQUERY)) {
-                swap(packet + mc_proto_MAGICBYTES, packetip);
-                byte_copy(packet + mc_proto_MAGICBYTES + 16, 2, packetport);
-                byte_copy(packetport, 2, port);
+                swapip(packet + mc_proto_MAGICBYTES, packetip);
+                swapport(packet + mc_proto_MAGICBYTES + 16, packetport);
+                if (byte_isequal(packetport, 2, "\0\0")) {
+                    byte_copy(packetport, 2, port);
+                }
             }
             else if (byte_isequal(packet, mc_proto_MAGICBYTES - 1,
                                   mc_proto_MAGICREPLY)) {
-                swap(packet + mc_proto_MAGICBYTES, packetip);
-                byte_copy(packetport, 2, packet + mc_proto_MAGICBYTES + 16);
-                byte_zero(packet + mc_proto_MAGICBYTES + 16, 2);
+                swapip(packet + mc_proto_MAGICBYTES, packetip);
+                swapport(packet + mc_proto_MAGICBYTES + 16, packetport);
             }
             else { continue; }
 

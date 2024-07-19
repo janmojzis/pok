@@ -41,7 +41,8 @@ long long socket_recv(int fd, void *x, long long xlen, unsigned char *ip,
         if (port) memset(port, 0, 2);
     }
 
-    if (r > 0) ++packets;
+    if (r < 0) return -1;
+    ++packets;
     return r;
 }
 
