@@ -1,14 +1,17 @@
 ## INTRODUCTION
-
 It is a tool that establishes an encrypted and authenticated connection between
-a network client and a server. The connection is created using UDP packets,
-encrypted with the `XSalsa20` algorithm, and authenticated with the `Poly1305`
-algorithm. The [Classic McEliece cryptosystem](https://classic.mceliece.org)
-specifically the `mceliece6688128` variant is used to exchange public keys.
-All these algorithms provide sufficient long-term protection against computer
-attacks, including future attacks using quantum computers.
+a network client and a server. The connection is created using encrypted UDP
+packets.
 
-The tool will work in the classic client-server mode, but also aims
+### GOAL1 - STRONG ENCRYPTION
+Encryption is provided by algorithms that are resistant to attacks using
+quantum computers.
+- [Classic McEliece mceliece6688128](https://lib.mceliece.org)
+- XSalsa20
+- [Poly1305](https://lib1305.cr.yp.to)
+
+### GOAL2 - universal connections
+The tool works in the classic `client-server` mode, but also aims
 to be used in the `client-forwarder-server` mode. Which can be used in cases
 where the network structure is more complex (e.g. server behind NAT).
 In particular, it aims to be able to easily set up peer-peer connections.
