@@ -22,3 +22,12 @@ The forwarder will perform these steps based on server's public-key/IP/PORT:
     traffic from the clients to the server with given public-key.
 
 ![client forwarding](img/forwarder-client-forwarding.jpg)
+
+
+Client packets are now forwarded as follows:
+
+The client adds the server's public-key hash to the "extension" field in
+the packet and sends the packet to the forwarder's IP:PORT. The forwarder
+extracts the public key hash from the "extension" field.
+It searches its forwarding table and if it finds the public-key, it forwards
+the packet to the server's IP:PORT with given public-key hash.
