@@ -31,3 +31,15 @@ the packet and sends the packet to the forwarder's IP:PORT. The forwarder
 extracts the public key hash from the "extension" field.
 It searches its forwarding table and if it finds the public-key, it forwards
 the packet to the server's IP:PORT with given public-key hash.
+
+
+# Examples
+
+## server behind NAT, forwarder has internal and external IP
+![forwarder internal](img/forwarder-internal-ip.jpg)
+
+## server behind NAT, forwarder has only external IP
+![forwarder external](img/forwarder-external-ip.jpg)
+
+## server behind NAT, forwarder has only external IP, client also behind NAT
+![forwarder external](img/forwarder-external-ip2.jpg)
