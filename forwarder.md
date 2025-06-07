@@ -30,7 +30,8 @@ The client adds the server's public-key hash to the "extension" field in
 the packet and sends the packet to the forwarder's IP:PORT. The forwarder
 extracts the public key hash from the "extension" field.
 It searches its forwarding table and if it finds the public-key, it forwards
-the packet to the server's IP:PORT with given public-key hash.
+the packet to the server's IP:PORT with given public-key hash (to the server's
+backend connection).
 
 
 # Examples
@@ -57,4 +58,15 @@ connection to the server.
 ![forwarder external](img/forwarder-external-ip.jpg)
 
 ## server behind NAT, forwarder has only external IP, client also behind NAT, peer-peer connection
+
+This setup is similar to the previous case. Except that both the server and
+the client connect to the forwarder via NATed connections from local networks.
+So the forwarder knows the NATed IP:PORT of both the server and the client
+and in addition to forwarding client packets from the client to the server it
+also helps to exchange information about the NATed IP:PORT. The server's IP:PORT
+is forwarded to the client and the client's IP:PORT to the server. And both
+the client and the server stop sending packets to the forwarder and send them
+directly, thus creating a peer-to-peer connection. This technique is called
+hole-punching.
+
 ![forwarder peer peer](img/forwarder-peer-peer.jpg)
