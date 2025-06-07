@@ -36,9 +36,24 @@ the packet to the server's IP:PORT with given public-key hash.
 # Examples
 
 ## server behind NAT, forwarder has internal and external IP
+
+Forwarder listens on 2 interfaces. The server establishes a connection to
+the local IP forwarder, and clients connect to the external IP forwarder from
+the external site. The forwarder then forwards the packets from the external
+site to the internal one.
+
 ![forwarder internal](img/forwarder-internal-ip.jpg)
 
 ## server behind NAT, forwarder has only external IP
+
+Forwarder has only one interface and runs in an external network and has
+an external IP address. The server establishes a connection from the local
+network to the external forwarders IP. This connection is NATed by the edge
+router, so the connection to the forwarder comes from an external IP:PORT
+of the router.
+It then forwards client packets from the external network to the NATed
+connection to the server.
+
 ![forwarder external](img/forwarder-external-ip.jpg)
 
 ## server behind NAT, forwarder has only external IP, client also behind NAT
