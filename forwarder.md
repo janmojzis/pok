@@ -56,8 +56,5 @@ connection to the server.
 
 ![forwarder external](img/forwarder-external-ip.jpg)
 
-## server behind NAT, forwarder has only external IP, client also behind NAT
-![forwarder external](img/forwarder-external-ip2.jpg)
-
 ## server behind NAT, forwarder has only external IP, client also behind NAT, peer-peer connection
 ![forwarder peer peer](img/forwarder-peer-peer.jpg)
