@@ -28,7 +28,7 @@ Client knows the root hash (L0) from DNS record or `-R` flag and verifies each b
 </tbody>
 </table>
 
-- LEVPOS - 2 bytes encoding `level` (bits 13-15), `flagauth` (bit 12), `pos` (bits 0-11)
+- LEVPOS - 2 bytes encoding `level` (bits 13-15), `pos` (bits 0-11)
 - PKHASH - root hash of the Merkle tree (L0)
 
 ## REPLYL variants (by level)
@@ -120,7 +120,7 @@ Client knows the root hash (L0) from DNS record or `-R` flag and verifies each b
     <td>MAGIC</td>
     <td>EXTENSION</td>
     <td>LEVPOS</td>
-    <td>L4 BLOCK (mctiny)</td>
+    <td>L4 BLOCK (mctiny block)</td>
   </tr>
   <tr>
     <td>8B</td>
@@ -131,7 +131,7 @@ Client knows the root hash (L0) from DNS record or `-R` flag and verifies each b
 </tbody>
 </table>
 
-- L4 BLOCK - actual public key block (mctiny 1134×18 bits)
+- L4 BLOCK - actual public key block (mctiny block)
 
 # PHASE K — KEY EXCHANGE
 
