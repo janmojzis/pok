@@ -1,7 +1,7 @@
 # PHASE L — PUBLIC KEY DOWNLOAD
 
 Downloads server's long-term mceliece6688128 public key using Merkle tree distribution.
-Client knows the root hash (L0) from DNS TXT or `-R` flag and verifies each block against its parent.
+Client knows the root hash (L0) from DNS record or `-R` flag and verifies each block against its parent.
 
 ## QUERYL - 1232-bytes (all levels)
 
@@ -509,6 +509,76 @@ Finalize session establishment after key exchange. Client sends `cookie9` to ser
 
 After this phase both sides derive final 3×32B session key material via `shake256(key9, 2×32B)` and initialize `keyratchet_enc` and `keyratchet_dec` for M/P phases.
 
+# PHASE M — MESSAGE TRANSPORT
+
+Application data transport using keyratchet encryption. Messages are framed and encrypted, with up to 1152 bytes of encrypted payload per packet.
+
+## QUERYM - 1232-bytes (max)
+
+<table><thead>
+  <tr>
+    <th colspan="4">HEADER</th>
+    <th colspan="2">ENCRYPTED DATA</th>
+  </tr></thead>
+<tbody>
+  <tr>
+    <td>MAGIC</td>
+    <td>EXTENSION</td>
+    <td>ID</td>
+    <td>NONCE</td>
+    <td>AUTH.</td>
+    <td>MESSAGE</td>
+  </tr>
+  <tr>
+    <td>8B</td>
+    <td>32B</td>
+    <td>16B</td>
+    <td>8B</td>
+    <td>16B</td>
+    <td>0-1152B</td>
+  </tr>
+</tbody>
+</table>
+
+- ID - session identifier (16 bytes)
+- NONCE - 8-byte keyratchet nonce (counter + epoch)
+- AUTH. - 16-byte authenticator
+- MESSAGE - encrypted message payload
+
+Message payload uses internal framing (32-byte header + up to 1120-byte data block) for acknowledgments, EOF signaling, and reliable ordered delivery.
+
+## REPLYM - 1232-bytes (max)
+
+<table><thead>
+  <tr>
+    <th colspan="4">HEADER</th>
+    <th colspan="2">ENCRYPTED DATA</th>
+  </tr></thead>
+<tbody>
+  <tr>
+    <td>MAGIC</td>
+    <td>EXTENSION</td>
+    <td>ID</td>
+    <td>NONCE</td>
+    <td>AUTH.</td>
+    <td>MESSAGE</td>
+  </tr>
+  <tr>
+    <td>8B</td>
+    <td>32B</td>
+    <td>16B</td>
+    <td>8B</td>
+    <td>16B</td>
+    <td>0-1152B</td>
+  </tr>
+</tbody>
+</table>
+
+- ID - session identifier (16 bytes)
+- NONCE - 8-byte keyratchet nonce (counter + epoch)
+- AUTH. - 16-byte authenticator
+- MESSAGE - encrypted message payload
+
 # PHASE P — PING / KEEPALIVE
 
 Keepalive packets with no application payload. Uses same keyratchet as PHASE M.
@@ -540,7 +610,7 @@ Keepalive packets with no application payload. Uses same keyratchet as PHASE M.
 
 - ID - session identifier (16 bytes)
 - NONCE - 8-byte keyratchet nonce (counter + epoch)
-- AUTH. - authenticator for 0-byte encrypted payload
+- AUTH. - 16-byte authenticator for 0-byte encrypted payload
 
 ## REPLYP - 80-bytes
 
@@ -569,5 +639,5 @@ Keepalive packets with no application payload. Uses same keyratchet as PHASE M.
 
 - ID - session identifier (16 bytes)
 - NONCE - 8-byte keyratchet nonce
-- AUTH. - authenticator for 0-byte encrypted payload
+- AUTH. - 16-byte authenticator for 0-byte encrypted payload
 
