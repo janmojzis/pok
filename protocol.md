@@ -1,4 +1,139 @@
-# KEY EXCHANGE
+# PHASE L — PUBLIC KEY DOWNLOAD
+
+Downloads server's long-term mceliece6688128 public key using Merkle tree distribution.
+Client knows the root hash (L0) from DNS TXT or `-R` flag and verifies each block against its parent.
+
+## QUERYL - 1232-bytes (all levels)
+
+<table><thead>
+  <tr>
+    <th colspan="3">HEADER</th>
+    <th colspan="2">PLAINTEXT DATA</th>
+  </tr></thead>
+<tbody>
+  <tr>
+    <td>MAGIC</td>
+    <td>EXTENSION</td>
+    <td>LEVPOS</td>
+    <td>PKHASH</td>
+    <td>PADDING</td>
+  </tr>
+  <tr>
+    <td>8B</td>
+    <td>32B</td>
+    <td>2B</td>
+    <td>32B</td>
+    <td>1158B</td>
+  </tr>
+</tbody>
+</table>
+
+- LEVPOS - 2 bytes encoding `level` (bits 13-15), `flagauth` (bit 12), `pos` (bits 0-11)
+- PKHASH - root hash of the Merkle tree (L0)
+
+## REPLYL variants (by level)
+
+### REPLYL1 - 138-bytes, 1 block
+
+<table><thead>
+  <tr>
+    <th colspan="3">HEADER</th>
+    <th colspan="1">PLAINTEXT DATA</th>
+  </tr></thead>
+<tbody>
+  <tr>
+    <td>MAGIC</td>
+    <td>EXTENSION</td>
+    <td>LEVPOS</td>
+    <td>L1 BLOCK</td>
+  </tr>
+  <tr>
+    <td>8B</td>
+    <td>32B</td>
+    <td>2B</td>
+    <td>96B</td>
+  </tr>
+</tbody>
+</table>
+
+- L1 BLOCK - concatenation of 3 L2 block hashes
+
+### REPLYL2 - 554-bytes, 3 blocks
+
+<table><thead>
+  <tr>
+    <th colspan="3">HEADER</th>
+    <th colspan="1">PLAINTEXT DATA</th>
+  </tr></thead>
+<tbody>
+  <tr>
+    <td>MAGIC</td>
+    <td>EXTENSION</td>
+    <td>LEVPOS</td>
+    <td>L2 BLOCK</td>
+  </tr>
+  <tr>
+    <td>8B</td>
+    <td>32B</td>
+    <td>2B</td>
+    <td>512B</td>
+  </tr>
+</tbody>
+</table>
+
+- L2 BLOCK - concatenation of L3 block hashes
+
+### REPLYL3 - 682-bytes, 47 blocks
+
+<table><thead>
+  <tr>
+    <th colspan="3">HEADER</th>
+    <th colspan="1">PLAINTEXT DATA</th>
+  </tr></thead>
+<tbody>
+  <tr>
+    <td>MAGIC</td>
+    <td>EXTENSION</td>
+    <td>LEVPOS</td>
+    <td>L3 BLOCK</td>
+  </tr>
+  <tr>
+    <td>8B</td>
+    <td>32B</td>
+    <td>2B</td>
+    <td>640B</td>
+  </tr>
+</tbody>
+</table>
+
+- L3 BLOCK - concatenation of L4 block hashes
+
+### REPLYL4 - 1176-bytes, 930 blocks
+
+<table><thead>
+  <tr>
+    <th colspan="3">HEADER</th>
+    <th colspan="1">PLAINTEXT DATA</th>
+  </tr></thead>
+<tbody>
+  <tr>
+    <td>MAGIC</td>
+    <td>EXTENSION</td>
+    <td>LEVPOS</td>
+    <td>L4 BLOCK (mctiny)</td>
+  </tr>
+  <tr>
+    <td>8B</td>
+    <td>32B</td>
+    <td>2B</td>
+    <td>1134B</td>
+  </tr>
+</tbody>
+</table>
+
+- L4 BLOCK - actual public key block (mctiny 1134×18 bits)
+
+# PHASE K — KEY EXCHANGE
 
 Key exchange - transfers two mceliece6688128 public keys in parallel.
 One key is one-time ephemeral key and second is authorization key.
@@ -276,7 +411,7 @@ One key is one-time ephemeral key and second is authorization key.
 </tbody>
 </table>
 
-### REPLY4 - 600-bytes, 1 packet
+### REPLY4 - 640-bytes, 1 packet
 
 <table><thead>
   <tr>
@@ -300,7 +435,7 @@ One key is one-time ephemeral key and second is authorization key.
     <td>16B</td>
     <td>208B</td>
     <td>208B</td>
-    <td>104B</td>
+    <td>144B</td>
   </tr>
 </tbody>
 </table>
@@ -308,4 +443,131 @@ One key is one-time ephemeral key and second is authorization key.
 - ONE-TIME CIPHERTEXT - ephemeral/one-time mceliece6688128 ciphertext
 - AUTH. CIPHERTEXT - authorization mceliece6688128 ciphertext
 - COOKIE9 - holds server-encrypted 32B symetric key and 32B client's authorization public-key hash
+
+# PHASE I — INITIALIZATION
+
+Finalize session establishment after key exchange. Client sends `cookie9` to server, both sides derive final session keys and initialize keyratchet for message transport.
+
+## QUERYI - 232-bytes
+
+<table><thead>
+  <tr>
+    <th colspan="3">HEADER</th>
+    <th colspan="2">ENCRYPTED DATA</th>
+    <th colspan="1">PLAINTEXT DATA</th>
+  </tr></thead>
+<tbody>
+  <tr>
+    <td>MAGIC</td>
+    <td>EXTENSION</td>
+    <td>NONCE</td>
+    <td>AUTH.</td>
+    <td>CLIENTTM</td>
+    <td>COOKIE9</td>
+  </tr>
+  <tr>
+    <td>8B</td>
+    <td>32B</td>
+    <td>24B</td>
+    <td>16B</td>
+    <td>8B</td>
+    <td>144B</td>
+  </tr>
+</tbody>
+</table>
+
+- NONCE - must be `id(16B) || 0x00(8B)` (last 8 bytes zero)
+- CLIENTTM - client timestamp (encrypted)
+- COOKIE9 - obtained from REPLY4 (plaintext, not encrypted by init key)
+
+## REPLYI - 88-bytes
+
+<table><thead>
+  <tr>
+    <th colspan="3">HEADER</th>
+    <th colspan="2">ENCRYPTED DATA</th>
+  </tr></thead>
+<tbody>
+  <tr>
+    <td>MAGIC</td>
+    <td>EXTENSION</td>
+    <td>NONCE</td>
+    <td>AUTH.</td>
+    <td>SERVERTM</td>
+  </tr>
+  <tr>
+    <td>8B</td>
+    <td>32B</td>
+    <td>24B</td>
+    <td>16B</td>
+    <td>8B</td>
+  </tr>
+</tbody>
+</table>
+
+- SERVERTM - server timestamp (encrypted)
+
+After this phase both sides derive final 3×32B session key material via `shake256(key9, 2×32B)` and initialize `keyratchet_enc` and `keyratchet_dec` for M/P phases.
+
+# PHASE P — PING / KEEPALIVE
+
+Keepalive packets with no application payload. Uses same keyratchet as PHASE M.
+
+## QUERYP - 80-bytes
+
+<table><thead>
+  <tr>
+    <th colspan="4">HEADER</th>
+    <th colspan="1">ENCRYPTED DATA</th>
+  </tr></thead>
+<tbody>
+  <tr>
+    <td>MAGIC</td>
+    <td>EXTENSION</td>
+    <td>ID</td>
+    <td>NONCE</td>
+    <td>AUTH.</td>
+  </tr>
+  <tr>
+    <td>8B</td>
+    <td>32B</td>
+    <td>16B</td>
+    <td>8B</td>
+    <td>16B</td>
+  </tr>
+</tbody>
+</table>
+
+- ID - session identifier (16 bytes)
+- NONCE - 8-byte keyratchet nonce (counter + epoch)
+- AUTH. - authenticator for 0-byte encrypted payload
+
+## REPLYP - 80-bytes
+
+<table><thead>
+  <tr>
+    <th colspan="4">HEADER</th>
+    <th colspan="1">ENCRYPTED DATA</th>
+  </tr></thead>
+<tbody>
+  <tr>
+    <td>MAGIC</td>
+    <td>EXTENSION</td>
+    <td>ID</td>
+    <td>NONCE</td>
+    <td>AUTH.</td>
+  </tr>
+  <tr>
+    <td>8B</td>
+    <td>32B</td>
+    <td>16B</td>
+    <td>8B</td>
+    <td>16B</td>
+  </tr>
+</tbody>
+</table>
+
+- ID - session identifier (16 bytes)
+- NONCE - 8-byte keyratchet nonce
+- AUTH. - authenticator for 0-byte encrypted payload
 
