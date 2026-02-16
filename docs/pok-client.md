@@ -1,72 +1,93 @@
-## `pok-client`
+### NAME
 
-Establish an encrypted and authenticated UDP session to a `pok-server`
-directly, or via a `pok-gateway` (routing is controlled by the packet
-`extension` field).
+pok-client - establish an encrypted and authenticated UDP session to a pok-server
 
-The connection setup uses phases L/K/I and then transports application data
-with phases M/P. See `protocol.md` for the on-wire formats.
-
-### Synopsis
+### SYNOPSIS
 
 `pok-client [-vqQcCr] [-t session-timeout] [-T kex-timeout] [-R server-pk-hash] [-E extension] [-k keydir -a authorization-hash] host port [prog]`
 
-### Arguments
+### DESCRIPTION
 
-- **`host`**: Server hostname or IP address to connect to.
-- **`port`**: Server UDP port.
-- **`prog`** (optional): Program to execute. If omitted, the message handler
-  redirects input/output to `stdin`/`stdout` instead of executing a child
-  program.
+**pok-client** is a utility that, together with **pok-server**,
+creates an encrypted and authenticated communication channel.
+**pok-client** is the client-side component of this pair.
+When the secure session is established, **pok-client** sends data between the
+local program *prog* and the remote program launched by **pok-server**.
 
-### Options
+**POK** is an acronym for Postquantum OverKill. The name reflects
+the use of conservative, high-security cryptographic choices,
+notably the large ("overkill") Classic McEliece parameter set
+mceliece6688128.
 
-- **Logging**
-  - **`-v`**: Increase log verbosity. Can be repeated.
-  - **`-q`**: Set log level to USAGE.
-  - **`-Q`**: Set log level to FATAL.
-  - **`-c`**: Enable colored log output.
-  - **`-C`**: Disable colored log output.
-- **Timeouts**
-  - **`-T seconds`**: Key-exchange timeout. Range: 1–3600. Default: `120`.
-  - **`-t seconds`**: Session timeout. Range: 1–3600. Default: `300`.
-- **Server public-key hash (serverID)**
-  - **`-R hexhash`**: Set the server public-key hash explicitly (hex string).
-  - **`-r`**: Reset `-R` and use DNS TXT lookup instead.
+### OPTIONS
 
-    If `-R` is not provided (or reset with `-r`), the client resolves the hash
-    from the `host` TXT record with the `PoKv0dD=` prefix.
-- **Authorization**
-  - **`-k keydir`**: Change directory to `keydir` before reading keys.
-  - **`-a hexhash`**: Client authorization public-key hash (hex string).
-    Requires `-k`.
-- **Routing / extension**
-  - **`-E extension`**: Override the 32-byte packet `extension` field. If `-E`
-    is not provided (or empty), the default is the server public-key hash
-    (serverID), which enables gateway forwarding.
+`-q`
+:   Quiet mode. Suppress error messages.
 
-    The string format accepted by `-E` is documented in `README.md`
-    ("Extension format (-E)").
+`-Q`
+:   Normal mode (default).
 
-### Typical usage
+`-v`
+:   Enable verbose mode. Multiple -v options increase the verbosity.
 
-Direct client → server (explicit server pkhash):
+`-c`
+:   Enable colored log output.
+
+`-C`
+:   Disable colored log output.
+
+`-T` *seconds*
+:   Key-exchange timeout. Range: 1–3600. Default: `120`.
+
+`-t` *seconds*
+:   Session timeout. Range: 1–3600. Default: `300`.
+
+
+`-R` *hex-string*
+:   Do not resolve serverID from a TXT record. Use the value from `-R`
+    *hex-string*.
+
+`-r`
+:   Resolve serverID from a DNS TXT record (default).
+
+
+`-k` *keydir*
+:   Change directory to *keydir* before reading keys.
+
+`-a` *hexhash*
+:   Client authorization public-key hash (hex string). Requires `-k`.
+
+`-E` *extension*
+:   Override the 32-byte packet extension field.
+
+*host*
+:   Server hostname or IP address to connect to.
+
+*port*
+:   Server UDP port.
+
+*prog*
+:   Program to execute. If omitted, the message handler redirects input/output
+     to stdin/stdout instead of executing a child program.
+
+### EXAMPLES
+
+Simple hello-world example:
 
 ```bash
-./pok-client -vk clientkeydir -a <client_auth_pkhash> -R <server_pkhash> 127.0.0.1 1234
+# create server keypair
+./pok-makekey serverkeydir
+pok-makekey: info: mceliece6688128 public-key created 'serverkeydir/public/<serverID>'
+pok-makekey: info: mceliece6688128 secret-key created 'serverkeydir/secret/<serverID>'
+
+# run server
+./pok-server -k serverkeydir 127.0.0.1 1234 sh -c 'echo "HELLO WORLD"'
+
+# run client (replace <serverID>)
+./pok-client -R <serverID> 127.0.0.1 1234 sh -c 'cat >&2'
 ```
 
-Gateway mode (client still targets `host`, DNS A may point to the gateway;
-server pkhash comes from TXT by default):
+### SEE ALSO
 
-```bash
-./pok-client -vk clientkeydir -a <client_auth_pkhash> myserver.example.com 1234
-```
-
-### Exit status
-
-- **`0`**: Success (child program exit status is propagated when `prog` is
-  used).
-- **`100`**: Usage error.
-- **`111`**: Failure (network/parse/key exchange errors, etc.).
+pok-server(1), pok-gateway(1), pok-makekey(1)
 

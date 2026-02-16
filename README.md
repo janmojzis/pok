@@ -1,108 +1,186 @@
-## INTRODUCTION
-It is a tool that establishes an encrypted and authenticated connection between
-a network client and a server. The connection is created using encrypted UDP
-packets.
+# INTRODUCTION
 
-### GOAL1 - STRONG ENCRYPTION
-Encryption is provided by algorithms that are resistant to attacks using
-quantum computers.
+`POK` provides an encrypted and authenticated client–server communication layer
+built on top of UDP.
+
+`POK` is an acronym for **Postquantum OverKill**, emphasizing a conservative
+cryptographic design with large security margins.
+
+Encryption and authentication are provided by:
+
 - [Classic McEliece mceliece6688128](https://lib.mceliece.org)
-- XSalsa20
-- [Poly1305](https://lib1305.cr.yp.to)
+- XSalsa20/[Poly1305](https://lib1305.cr.yp.to)
 
-### GOAL2 - universal connections
+This combination provides sufficient resistance to both classical and quantum
+attacks.
+
+---
+
+# Connection
+
+The connection setup consists of several phases that together establish
+an authenticated and encrypted session.
+Packet formats and detailed phase descriptions are specified in
+[`protocol.md`](protocol.md).
+
+## 1. Public-key download (L)
+
+Before a client can establish a secure connection, it must obtain and verify
+the server’s long-term public key.
+
+The server uses the McEliece mceliece6688128 variant, which has a ~1 MB public
+key. To make distribution practical:
+
+- The public key is split into small packet-sized blocks.
+- These blocks are transferred using separate packets.
+- The public key is distributed as a Merkle tree, which allows efficient
+  verification of individual blocks.
+- The Merkle root hash is stored in DNS.
+
+Inspiration taken from [Pqconnect](https://www.pqconnect.net/).
+
+## 2. Key exchange (K)
+
+After obtaining the server’s long-term public key, the client performs
+a key exchange to derive one-time session encryption keys.
+
+During this phase, two McEliece mceliece6688128 public keys are transmitted
+from the client to the server:
+
+- An ephemeral (one-time) public key, providing forward secrecy.
+- An authentication public key, used to authenticate the client
+  within the session.
+
+Each public key is approximately 1 MB in size. The keys are transmitted
+using an [mctiny](https://mctiny.org)-like protocol, which splits them into
+packet-sized blocks and allows stateless processing on the server side.
+
+## 3. Initialization (I)
+
+After the key exchange phase both parties derive their session keys and initialize
+the encrypted transport state. The message processing handler
+is then started to handle incoming encrypted messages.
+
+## 4. Messages (M)
+
+Once initialization completes, encrypted communication begins.
+Application data is transmitted using encrypted and authenticated packets.
+
+In addition to message transport (M), the protocol defines ping/keepalive
+packets (P) used to maintain sessions and backend registrations.
+
+---
+
+# Connection modes
 The tool works in the classic `client-server` mode, but also aims
-to be used in the `client-gateway-server` mode. Which can be used in cases
-where the network structure is more complex (e.g. server behind NAT).
-In particular, it aims to be able to easily set up peer-peer connections.
+to be used in the `client-gateway-server` mode. This can be useful when the
+network structure is more complex (e.g. a server behind NAT).
 
+## Simple (direct) — client → server
 
-## KEY EXCHANGE (three mceliece6688128 keys):
-Before a client can create an encrypted and authenticated connection, it needs
-to know the server's long-term public key. The McEliece mceliece6688128 variant
-has a 1MB public key. The server’s long-term public key is split into small
-packet-sized blocks. And these blocks are transferred using separate packets.
-In order to verify whether a transmitted packet is unchanged, the public key
-is distributed as a Merkle tree. And the root hash of the tree is stored in
-DNS record. Inspiration taken from [Pqconnect](https://www.pqconnect.net/).
+`pok-client` creates a direct connection to `pok-server`.
 
-Then, it is necessary to transfer an ephemeral key, in our case,
-a one-time public key transferred from the client to the server using
-[mctiny](https://mctiny.org)-like protocol.
+```mermaid
+flowchart LR
+  clientNode["pok-client"] -->|"UDP"| serverNode["pok-server"]
+```
 
-Third public key transferred is the authorization public key. It's transmitted
-from the client to the server, just like the one-time public key using 
-[mctiny](https://mctiny.org)-like protocol.
+## Advanced (forwarded) — client → gateway → server
+  
+`pok-gateway` is a UDP forwarding component that routes incoming packets from
+`pok-client` to the appropriate backend `pok-server` based on metadata stored
+in the packet's 32-byte `extension` field (see [protocol.md](protocol.md)).
 
+The gateway:
+
+- inspects the `extension` field
+- makes routing decisions based on that field
+- forwards packets to backend servers
+- supports:
+  - IP[:PORT]-based routing
+  - serverID-based routing (server public-key hash)
+
+---
+
+### 1. Forwarding by IP[:PORT]
+
+In this mode, the extension field directly contains the target backend address.
+
+1. The gateway extracts `IP[:PORT]` from the extension.
+2. It forwards the UDP packet to that address.
+3. The backend server receives and decrypts the query packet.
+4. The backend server encrypts and sends the response packet.
+5. The gateway forwards the packet back to the client.
+
+```mermaid
+flowchart LR
+  subgraph publicNet ["Public network (WAN)"]
+    clientNode["pok-client"]
+  end
+  clientNode["pok-client"] -->|"UDP"| gatewayNode["pok-gateway (WAN + LAN interface)"]
+  subgraph behindNat ["Internal network (LAN)"]
+    gatewayNode -->|"Forward by IP:PORT"| serverNode["pok-server (LAN interface only)"]
+  end
+```
+
+---
+
+### 2. Forwarding by serverID (server public-key hash)
+
+In this mode, the extension contains the 32-byte server public-key hash
+(serverID) identifying the backend server.
+
+#### Backend Registration
+
+- Each backend server establishes a backend session to the gateway and maintains
+  it with keepalives.
+- The backend authenticates using its long-term key identity; the serverID is
+  the public-key hash.
+- The gateway associates that serverID with the server endpoint (IP:PORT)
+  observed during registration and keepalives.
+
+#### Client Packet Handling
+
+1. The client sends a packet.
+2. The extension contains the 32-byte serverID.
+3. The gateway looks up the registered server endpoint for that serverID.
+4. The packet is forwarded to that endpoint.
+
+```mermaid
+flowchart LR
+  subgraph internalNet2 [Network behind NAT]
+    C["pok-client"]
+  end
+  subgraph internalNet1 [Network behind NAT]
+    S["pok-server"]
+  end
+  subgraph externalNet [Public network]
+    G["pok-gateway"]
+  end
+  S -->|"Backend registration"| G
+  C -->|"Client traffic"| G
+  G -->|"Forwarded traffic"| S
+```
+
+---
 
 ## Build and run tests
-- needs libmceliece-dev, librandombytes-dev (apt-get install libmceliece-dev librandombytes-dev)
-```
+
+This project requires development headers for Classic McEliece and randombytes.
+For example on Debian/Ubuntu:
+
+`apt-get install libmceliece-dev librandombytes-dev`
+
+Build and run tests:
+
+```sh
 make
 make test
 ```
 
-## Test key-exchange
-```
-# create server keypair
-./pok-makekey serverkeydir
-pok-makekey: info: mceliece6688128 public-key created 'serverkeydir/public/c03e3750a767614ad666d803aab4a71dce6a57d45dcd61315222944de972fd20'
-pok-makekey: info: mceliece6688128 secret-key created 'serverkeydir/secret/c03e3750a767614ad666d803aab4a71dce6a57d45dcd61315222944de972fd20'
+---
 
-# run server
-./pok-server -vk serverkeydir 127.0.0.1 1234 true
-
-# create client's authorization keypair
-./pok-makekey clientkeydir
-pok-makekey: info: mceliece6688128 public-key created 'clientkeydir/public/416869fcdca87deaf44461f4c22ea491190edbde21fb40931d9724529aa6d84f'
-pok-makekey: info: mceliece6688128 secret-key created 'clientkeydir/secret/416869fcdca87deaf44461f4c22ea491190edbde21fb40931d9724529aa6d84f'
-
-# run client (replace with YOUR KEYIDs)
-./pok-client -vk clientkeydir -a 416869fcdca87deaf44461f4c22ea491190edbde21fb40931d9724529aa6d84f -R c03e3750a767614ad666d803aab4a71dce6a57d45dcd61315222944de972fd20 127.0.0.1 1234
-```
-
-## Extension format (-E)
-The `-E` option allows overriding the 32-byte `extension` field with a parsed
-`host[:port]` string. For IPv6 with a port, use the bracketed form
-`[IPv6]:port` (brackets are only allowed for IPv6). Empty port (e.g. `host:`)
-is accepted.
-
-## Gateway forwarding mode
-
-The `pok-gateway` component allows running a server behind NAT or creating a relay point. In this setup:
-- `pok-server` registers to `pok-gateway` and maintains the connection via keepalive packets
-- `pok-client` connects to the gateway (using DNS that points to gateway's IP)
-- Packets are automatically forwarded based on `serverID` (server's public key hash)
-
-### How it works
-
-1. **Client always uses serverID**: Every packet from `pok-client` includes the target server's public key hash (`serverpkhash`) in the 32-byte `extension` field. This happens automatically - the client doesn't need to know whether it's going direct or through a gateway.
-
-2. **Gateway routing**: `pok-gateway` maintains a routing table mapping `serverID → server_conn`. When a packet arrives:
-   - If it's a registration attempt (from `pok-server`): gateway processes it as a server
-   - If it's client traffic: gateway looks up the `serverID` in extension and forwards to the registered server
-
-3. **Server registration**: `pok-server` connects to gateway as a client (using the server's existing UDP socket), with its own `serverpkhash` as the `serverID`. The registration and keepalive (`P` packets) are integrated into the server's main loop.
-
-### DNS setup
-
-For a server `myserver.example.com` behind gateway `gw.example.com`:
-
-```
-# Gateway DNS
-gw.example.com.     A       203.0.113.10
-gw.example.com.     TXT     "PoKv0dD=<gateway-pkhash>"
-
-# Server DNS (points to gateway IP, but TXT has server's pkhash)
-myserver.example.com.   A       203.0.113.10
-myserver.example.com.   TXT     "PoKv0dD=<server-pkhash>"
-```
-
-## Further documentation
-
-- `docs/pok-makekey.md`
-- `docs/pok-client.md`
-- `docs/pok-server.md`
-- `docs/pok-gateway.md`
-- `docs/topologies.md`
-- `docs/gateway-forwarding.md`
+# Examples
+- [client-server example](examples/client-server.md)
+- [IP:PORT based client-gateway-server example](examples/ipportbased-client-gateway-server.md)
+- [Public-key based client-gateway-server example](examples/pkbased-client-gateway-server.md)

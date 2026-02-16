@@ -92,7 +92,3 @@ sequenceDiagram
   G-->>C: Forwarded reply
 ```
 
-### Further reading
-
-- `docs/gateway-forwarding.md` (detailed model and NAT scenarios)
-

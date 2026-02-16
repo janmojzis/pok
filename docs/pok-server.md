@@ -1,72 +1,113 @@
-## `pok-server`
+### NAME
 
-Run a UDP server that accepts `pok-client` sessions, performs key exchange,
-and then spawns per-client child processes to handle application message
-transport.
+pok-server - accept encrypted and authenticated UDP sessions from pok-client
 
-The server can optionally register to a `pok-gateway` and keep that
-registration alive so clients can reach the server behind NAT.
+### SYNOPSIS
 
-### Synopsis
+`pok-server [-vqQcCgr] [-R gatewayID] [-w pattern] [-T seconds] [-t seconds] -k keydir [-G host:port] IP PORT prog`
 
-`pok-server [-vqQcCgr] [-R gateway-pk-hash] [-w pattern] [-T seconds] [-t seconds] -k keydir [-G host:port] host port prog`
+### DESCRIPTION
 
-### Arguments
+**pok-server** is a utility that, together with **pok-client**,
+creates an encrypted and authenticated communication channel
+between a remote program (started using **pok-client**)
+and a local program *prog*.
 
-- **`host`**: Local IP address to bind to.
-- **`port`**: Local UDP port to bind to.
-- **`prog`**: Program executed for each client connection.
-- **`-k keydir`**: Server key directory (required). The server `chdir()`s to
-  this directory before reading keys.
+**pok-server** is the server-side component of this pair. It receives
+encrypted and authenticated UDP packets from **pok-client**, verifies
+and decrypts them, and forwards the resulting data to the local
+program *prog*.
 
-### Options
+**POK** is an acronym for Postquantum OverKill. The name reflects
+the use of conservative, high-security cryptographic choices,
+notably the large ("overkill") Classic McEliece parameter set
+mceliece6688128.
 
-- **Logging**
-  - **`-v`**: Increase log verbosity. Can be repeated.
-  - **`-q`**: Set log level to USAGE.
-  - **`-Q`**: Set log level to FATAL.
-  - **`-c`**: Enable colored log output.
-  - **`-C`**: Disable colored log output.
-  - **`-w pattern`**: Add a log whitelist pattern.
-- **Timeouts**
-  - **`-T seconds`**: Gateway key-exchange timeout. Range: 1–3600.
-    Default: `120`.
-  - **`-t seconds`**: Session timeout. Range: 1–3600. Default: `300`.
+### OPTIONS
 
-    When gateway mode is enabled, this value is also used as the gateway
-    keepalive timeout threshold.
-- **Gateway mode**
-  - **`-G host:port`**: Enable gateway mode and set the gateway address.
-    The server will resolve the gateway host to IP candidates and determine the
-    gateway public-key hash via DNS TXT (unless overridden with `-R`).
-  - **`-R hexhash`**: Set the gateway public-key hash explicitly (hex string).
-  - **`-r`**: Reset `-R` and use DNS TXT lookup instead.
-  - **`-g`**: Disable gateway mode (reset any previously provided `-G`).
+`-q`
+:   Quiet mode. Suppress error messages.
 
-### Typical usage
+`-Q`
+:   Normal mode (default).
 
-Direct server:
+`-v`
+:   Enable verbose mode. Multiple -v options increase the verbosity.
+
+`-c`
+:   Enable colored log output.
+
+`-C`
+:   Disable colored log output.
+
+`-w` *pattern*
+:   Add a log whitelist pattern.
+
+`-T` *seconds*
+:   Gateway key-exchange timeout. Range: 1–3600. Default: `120`.
+
+`-t` *seconds*
+:   Session timeout. Range: 1–3600. Default: `300`. When gateway mode is
+    enabled, this value is also used as the gateway keepalive timeout
+    threshold.
+
+`-G` *host:port*
+:   Enable gateway mode and set the gateway address. The server will
+    resolve the gateway host to IP candidates and determine the gateway
+    public-key hash (gatewayID) from a DNS TXT record (unless overridden with
+    `-R`).
+
+`-g`
+:   Disable gateway mode (default).
+
+`-R` *hex-string*
+:   Do not resolve gatewayID from a TXT record. Use the value from `-R`
+    *hex-string*.
+
+`-r`
+:   Resolve gatewayID from a DNS TXT record (default).
+
+`-k` *keydir*
+:   Server key directory (required). The directory contains server encryption
+    keys.
+
+*IP*
+:   Local IP address to bind to.
+
+*PORT*
+:   Local UDP port to bind to.
+
+*prog*
+:   Program executed for each connection.
+
+### SIGNALS
+
+`SIGTERM`
+:   Request a clean shutdown.
+
+`SIGUSR1`
+:   Increase log verbosity.
+
+`SIGUSR2`
+:   Decrease log verbosity.
+
+### EXAMPLES
+
+Simple hello-world example:
 
 ```bash
-./pok-server -vk serverkeydir 127.0.0.1 1234 true
+# create server keypair
+./pok-makekey serverkeydir
+pok-makekey: info: mceliece6688128 public-key created 'serverkeydir/public/<serverID>'
+pok-makekey: info: mceliece6688128 secret-key created 'serverkeydir/secret/<serverID>'
+
+# run server
+./pok-server -k serverkeydir 127.0.0.1 1234 sh -c 'echo "HELLO WORLD"'
+
+# run client (replace <serverID>)
+./pok-client -R <serverID> 127.0.0.1 1234 sh -c 'cat >&2'
 ```
 
-Server registering to a gateway:
+### SEE ALSO
 
-```bash
-./pok-server -vk -G gw.example.com:11223 serverkeydir 0.0.0.0 1234 /usr/bin/myservice
-```
-
-### Notes
-
-- Gateway authorization is the server public-key hash (serverID). When gateway
-  mode is enabled, the server determines its public-key hash from the `public/`
-  directory and uses it to authenticate to the gateway.
-- Wire formats and phases L/K/I/M/P are specified in `protocol.md`.
-
-### Exit status
-
-- **`0`**: Success.
-- **`100`**: Usage error.
-- **`111`**: Failure (bind errors, key exchange errors, gateway timeout, etc.).
-
+pok-client(1), pok-gateway(1), pok-makekey(1)

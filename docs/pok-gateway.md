@@ -1,54 +1,63 @@
-## `pok-gateway`
+### NAME
 
-Run a UDP forwarding gateway used for:
+pok-gateway - forward encrypted and authenticated UDP packets to a pok-server
 
-- allowing a `pok-server` behind NAT to become reachable, and
-- relaying client traffic to a server based on routing information in the
-  32-byte packet `extension` field.
-
-The gateway maintains a routing table mapping `serverID` (server public-key
-hash) to an active registered server connection.
-
-### Synopsis
+### SYNOPSIS
 
 `pok-gateway [-vqQ] -k keydir IP PORT`
 
-### Arguments
+### DESCRIPTION
 
-- **`IP`**: Local IP address to bind to.
-- **`PORT`**: Local UDP port to bind to.
+**pok-gateway** forwards UDP packets to backend servers based on
+routing metadata contained in the packet header.
+The gateway does not decrypt or interpret application payloads.
+It only parses the required unencrypted metadata to determine
+the destination address and forwards packets transparently.
 
-### Options
+**POK** is an acronym for Postquantum OverKill. The name reflects
+the use of conservative, high-security cryptographic choices,
+notably the large ("overkill") Classic McEliece parameter set
+mceliece6688128.
 
-- **`-k keydir`** (required): Change directory to `keydir` before serving.
-- **`-v`**: Increase log verbosity. Can be repeated.
-- **`-q`**: Set log level to USAGE.
-- **`-Q`**: Set log level to FATAL.
+### OPTIONS
 
-### Forwarding behavior (high level)
+`-q`
+:   Quiet mode. Suppress error messages.
 
-- **Server registration traffic**: packets with an all-zero `extension` are
-  handled as gateway server-side handshake/keepalive.
-- **Forward-by-serverID**: for client traffic, the gateway uses the packet
-  `extension` as a lookup key (serverID) and forwards to the registered server.
-- **Forward-by-IP**: if the extension encodes an IP:port destination, the
-  gateway forwards based on that destination.
+`-Q`
+:   Normal mode (default).
 
-See `docs/topologies.md` for diagrams, `docs/gateway-forwarding.md` for a
-detailed forwarding model and NAT scenarios, and `README.md` for DNS setup
-examples.
+`-v`
+:   Enable verbose mode. Multiple -v options increase the verbosity.
 
-### Example
+`-k` *keydir*
+:   Server key directory (required). The directory contains server encryption
+    keys.
+
+*IP*
+:   Local IP address to bind to.
+
+*PORT*
+:   Local UDP port to bind to.
+
+### PACKET OVERVIEW
+
+| Metadata | Encrypted payload |
+|:--------:|:-----------------:|
+| 64B      | 0-1168 B          |
+
+### EXAMPLES
 
 Run a gateway:
 
 ```bash
-./pok-gateway -vk gatewaykeydir 0.0.0.0 11223
+# create gateway keypair
+./pok-makekey gatewaykeydir
+
+# run gateway
+./pok-gateway -k gatewaykeydir 0.0.0.0 1234
 ```
 
-### Exit status
+### SEE ALSO
 
-- **`0`**: Success.
-- **`100`**: Usage error.
-- **`111`**: Failure.
-
+pok-client(1), pok-server(1), pok-makekey(1)

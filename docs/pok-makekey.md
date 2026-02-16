@@ -1,37 +1,43 @@
-## `pok-makekey`
+### NAME
 
-Generate a Classic McEliece `mceliece6688128` keypair and write it into a
-directory structure suitable for use by the other `pok-*` binaries.
+pok-makekey - create a directory containing mceliece6688128 encryption keys
 
-This tool creates:
-
-- `keydir/public/<hexhash>`: the public key
-- `keydir/secret/<hexhash>`: the secret key (restricted permissions)
-
-The `<hexhash>` is derived from the Merkle tree root hash of the public key.
-
-### Synopsis
+### SYNOPSIS
 
 `pok-makekey [-vqQf] keydir`
 
-### Arguments
+### DESCRIPTION
 
-- **`keydir`**: Directory to create (or reuse with `-f`) for generated keys.
+**pok-makekey** generates a Classic McEliece mceliece6688128 key pair and
+writes it into a directory structure suitable for use by the pok-gateway,
+pok-client, and pok-server binaries.
 
-### Options
+This tool creates:
 
-- **`-v`**: Increase log verbosity. Can be repeated.
-- **`-q`**: Set log level to FATAL.
-- **`-Q`**: Set log level to ERROR.
-- **`-f`**: Force mode. Allows using an existing `keydir` directory and
-  overwriting `public/` and `secret/` contents.
+- `keydir/public/<keyID>`: the public key
+- `keydir/secret/<keyID>`: the secret key (with restricted permissions)
 
-Notes:
+The `<keyID>` is the key identifier; in fact, it is the Merkle tree root
+hash of the public key.
 
-- In this binary, `-q`/`-Q` meanings differ from `pok-client`/`pok-server`
-  (see their docs).
+### OPTIONS
 
-### Examples
+`-q`
+:   Quiet mode. Suppress error messages.
+
+`-Q`
+:   Normal mode (default).
+
+`-v`
+:   Enable verbose mode. Multiple -v options increase the verbosity.
+
+`-f`
+:   Force mode. Allow adding new keys to an existing *keydir*.
+
+*keydir*
+:   Directory to create (or reuse with `-f`) for generated keys.
+
+### EXAMPLES
 
 Create a new key directory:
 
@@ -39,15 +45,12 @@ Create a new key directory:
 ./pok-makekey serverkeydir
 ```
 
-Create (or reuse) an existing directory and increase verbosity:
+Create (or reuse) an existing directory:
 
 ```bash
-./pok-makekey -vvf serverkeydir
+./pok-makekey -f serverkeydir
 ```
 
-### Exit status
+### SEE ALSO
 
-- **`0`**: Success.
-- **`100`**: Usage error.
-- **`111`**: Failure (I/O errors, permission problems, etc.).
-
+pok-gateway(1), pok-client(1), pok-server(1)
