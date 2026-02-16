@@ -1,0 +1,22 @@
+@startuml
+skinparam shadowing false
+
+participant "pok-server" as S
+participant "pok-gateway" as G
+participant "pok-client" as C
+
+== Server backend registration ==
+S -> G : Handshake L/K/I
+G --> S : Handshake replies
+loop Keepalive
+  S -> G : QUERYP
+  G --> S : REPLYP
+end
+
+== Forwarded client traffic ==
+C -> G : QUERYL/QUERYK*/QUERYI/QUERYM/QUERYP\n(extension=serverID)
+G -> S : Forwarded packet (routed by serverID)
+S --> G : Reply packet
+G --> C : Forwarded reply
+@enduml
+

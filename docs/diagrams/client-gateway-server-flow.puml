@@ -1,0 +1,18 @@
+@startuml
+left to right direction
+skinparam shadowing false
+
+rectangle "pok-client" as C
+rectangle "pok-gateway" as G
+rectangle "pok-server" as S
+
+C --> G : UDP packets\nextension = serverID
+G --> S : Forward by extension(serverID)
+S --> G : Backend registration\n+ keepalive (P)
+
+note right of G
+  Routing table:
+  serverID -> serverEndpoint(IP:PORT)
+end note
+@enduml
+
