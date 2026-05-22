@@ -14,26 +14,27 @@ Client knows the root hash (L0) from DNS record or `-R` flag and verifies each b
   <tr>
     <td>MAGIC</td>
     <td>EXTENSION</td>
-    <td>LEVPOS</td>
+    <td>NONCE</td>
     <td>PKHASH</td>
     <td>PADDING</td>
   </tr>
   <tr>
     <td>8B</td>
     <td>32B</td>
-    <td>2B</td>
+    <td>24B</td>
     <td>32B</td>
-    <td>1158B</td>
+    <td>1136B</td>
   </tr>
 </tbody>
 </table>
 
-- LEVPOS - 2 bytes encoding `level` (bits 13-15), `pos` (bits 0-11)
+- NONCE - must be `client_nonce(22B) || levpos(2B)`.
+- LEVPOS - 2 bytes encoding `level` (bits 13-15), `flagauth` (bit 12), `pos` (bits 0-11). `flagauth` must be 0.
 - PKHASH - root hash of the Merkle tree (L0)
 
 ## REPLYL variants (by level)
 
-### REPLYL1 - 138-bytes, 1 block
+### REPLYL1 - 160-bytes, 1 block
 
 <table><thead>
   <tr>
@@ -44,13 +45,13 @@ Client knows the root hash (L0) from DNS record or `-R` flag and verifies each b
   <tr>
     <td>MAGIC</td>
     <td>EXTENSION</td>
-    <td>LEVPOS</td>
+    <td>NONCE</td>
     <td>L1 BLOCK</td>
   </tr>
   <tr>
     <td>8B</td>
     <td>32B</td>
-    <td>2B</td>
+    <td>24B</td>
     <td>96B</td>
   </tr>
 </tbody>
@@ -58,7 +59,7 @@ Client knows the root hash (L0) from DNS record or `-R` flag and verifies each b
 
 - L1 BLOCK - concatenation of 3 L2 block hashes
 
-### REPLYL2 - 554-bytes, 3 blocks
+### REPLYL2 - 576-bytes, 3 blocks
 
 <table><thead>
   <tr>
@@ -69,13 +70,13 @@ Client knows the root hash (L0) from DNS record or `-R` flag and verifies each b
   <tr>
     <td>MAGIC</td>
     <td>EXTENSION</td>
-    <td>LEVPOS</td>
+    <td>NONCE</td>
     <td>L2 BLOCK</td>
   </tr>
   <tr>
     <td>8B</td>
     <td>32B</td>
-    <td>2B</td>
+    <td>24B</td>
     <td>512B</td>
   </tr>
 </tbody>
@@ -83,7 +84,7 @@ Client knows the root hash (L0) from DNS record or `-R` flag and verifies each b
 
 - L2 BLOCK - concatenation of L3 block hashes
 
-### REPLYL3 - 682-bytes, 47 blocks
+### REPLYL3 - 704-bytes, 47 blocks
 
 <table><thead>
   <tr>
@@ -94,13 +95,13 @@ Client knows the root hash (L0) from DNS record or `-R` flag and verifies each b
   <tr>
     <td>MAGIC</td>
     <td>EXTENSION</td>
-    <td>LEVPOS</td>
+    <td>NONCE</td>
     <td>L3 BLOCK</td>
   </tr>
   <tr>
     <td>8B</td>
     <td>32B</td>
-    <td>2B</td>
+    <td>24B</td>
     <td>640B</td>
   </tr>
 </tbody>
@@ -108,7 +109,7 @@ Client knows the root hash (L0) from DNS record or `-R` flag and verifies each b
 
 - L3 BLOCK - concatenation of L4 block hashes
 
-### REPLYL4 - 1176-bytes, 930 blocks
+### REPLYL4 - 1198-bytes, 930 blocks
 
 <table><thead>
   <tr>
@@ -119,24 +120,24 @@ Client knows the root hash (L0) from DNS record or `-R` flag and verifies each b
   <tr>
     <td>MAGIC</td>
     <td>EXTENSION</td>
-    <td>LEVPOS</td>
-    <td>L4 BLOCK (mctiny block)</td>
+    <td>NONCE</td>
+    <td>L4 BLOCK (mctiny)</td>
   </tr>
   <tr>
     <td>8B</td>
     <td>32B</td>
-    <td>2B</td>
+    <td>24B</td>
     <td>1134B</td>
   </tr>
 </tbody>
 </table>
 
-- L4 BLOCK - actual public key block (mctiny block)
+- L4 BLOCK - actual public key block (mctiny 1134×18 bits)
 
 # PHASE K — KEY EXCHANGE
 
 Key exchange - transfers two mceliece6688128 public keys in parallel.
-One key is one-time ephemeral key and second is authorization key.
+One key is one-time ephemeral key and second is authentication key.
 
 ## PHASE 0
 
@@ -170,17 +171,17 @@ One key is one-time ephemeral key and second is authorization key.
 </tbody>
 </table>
 
-- BOX - encrypted (curently empty) box
+- BOX - encrypted (currently empty) box
 - PKHASH - server's public key hash
 - CIPHERTEXT - mceliece6688128 ciphertext
 
 
-### REPLY0 - 144-bytes
+### REPLY0 - 166-bytes
 
 <table><thead>
   <tr>
     <th colspan="3">HEADER</th>
-    <th colspan="3">ENCRYPTED DATA</th>
+    <th colspan="4">ENCRYPTED DATA</th>
   </tr></thead>
 <tbody>
   <tr>
@@ -190,6 +191,7 @@ One key is one-time ephemeral key and second is authorization key.
     <td>AUTH.</td>
     <td>KEY1234QUERY</td>
     <td>KEY1234REPLY</td>
+    <td>NONCE1234</td>
   </tr>
   <tr>
     <td>8B</td>
@@ -198,12 +200,14 @@ One key is one-time ephemeral key and second is authorization key.
     <td>16B</td>
     <td>32B</td>
     <td>32B</td>
+    <td>22B</td>
   </tr>
 </tbody>
 </table>
 
 - KEY1234QUERY - server-generated client's encryption key for next phases 1/2/3/4
 - KEY1234REPLY - server-generated server's encryption key for next phases 1/2/3/4
+- NONCE1234 - server-generated nonce prefix for next phases 1/2/3/4
 
 ## PHASE 1
 
@@ -411,7 +415,7 @@ One key is one-time ephemeral key and second is authorization key.
 </tbody>
 </table>
 
-### REPLY4 - 640-bytes, 1 packet
+### REPLY4 - 672-bytes, 1 packet
 
 <table><thead>
   <tr>
@@ -435,25 +439,25 @@ One key is one-time ephemeral key and second is authorization key.
     <td>16B</td>
     <td>208B</td>
     <td>208B</td>
-    <td>144B</td>
+    <td>176B</td>
   </tr>
 </tbody>
 </table>
 
 - ONE-TIME CIPHERTEXT - ephemeral/one-time mceliece6688128 ciphertext
-- AUTH. CIPHERTEXT - authorization mceliece6688128 ciphertext
-- COOKIE9 - holds server-encrypted 32B symetric key and 32B client's authorization public-key hash
+- AUTH. CIPHERTEXT - authentication mceliece6688128 ciphertext
+- COOKIE9 - holds server-encrypted 32B symmetric key and 32B client's authentication public-key hash
 
 # PHASE I — INITIALIZATION
 
 Finalize session establishment after key exchange. Client sends `cookie9` to server, both sides derive final session keys and initialize keyratchet for message transport.
 
-## QUERYI - 232-bytes
+## QUERYI - 296-bytes
 
 <table><thead>
   <tr>
     <th colspan="3">HEADER</th>
-    <th colspan="2">ENCRYPTED DATA</th>
+    <th colspan="3">ENCRYPTED DATA</th>
     <th colspan="1">PLAINTEXT DATA</th>
   </tr></thead>
 <tbody>
@@ -463,6 +467,7 @@ Finalize session establishment after key exchange. Client sends `cookie9` to ser
     <td>NONCE</td>
     <td>AUTH.</td>
     <td>CLIENTTM</td>
+    <td>EXTENSIONFROMSERVER</td>
     <td>COOKIE9</td>
   </tr>
   <tr>
@@ -471,21 +476,23 @@ Finalize session establishment after key exchange. Client sends `cookie9` to ser
     <td>24B</td>
     <td>16B</td>
     <td>8B</td>
-    <td>144B</td>
+    <td>32B</td>
+    <td>176B</td>
   </tr>
 </tbody>
 </table>
 
 - NONCE - must be `id(16B) || 0x00(8B)` (last 8 bytes zero)
 - CLIENTTM - client timestamp (encrypted)
+- EXTENSIONFROMSERVER - extension field received from server
 - COOKIE9 - obtained from REPLY4 (plaintext, not encrypted by init key)
 
-## REPLYI - 88-bytes
+## REPLYI - 120-bytes
 
 <table><thead>
   <tr>
     <th colspan="3">HEADER</th>
-    <th colspan="2">ENCRYPTED DATA</th>
+    <th colspan="3">ENCRYPTED DATA</th>
   </tr></thead>
 <tbody>
   <tr>
@@ -494,6 +501,7 @@ Finalize session establishment after key exchange. Client sends `cookie9` to ser
     <td>NONCE</td>
     <td>AUTH.</td>
     <td>SERVERTM</td>
+    <td>EXTENSIONFROMCLIENT</td>
   </tr>
   <tr>
     <td>8B</td>
@@ -501,11 +509,13 @@ Finalize session establishment after key exchange. Client sends `cookie9` to ser
     <td>24B</td>
     <td>16B</td>
     <td>8B</td>
+    <td>32B</td>
   </tr>
 </tbody>
 </table>
 
 - SERVERTM - server timestamp (encrypted)
+- EXTENSIONFROMCLIENT - extension field received from client
 
 After this phase both sides derive final 3×32B session key material via `shake256(key9, 2×32B)` and initialize `keyratchet_enc` and `keyratchet_dec` for M/P phases.
 
