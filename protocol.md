@@ -29,7 +29,7 @@ Client knows the root hash (L0) from DNS record or `-R` flag and verifies each b
 </table>
 
 - NONCE - must be `client_nonce(22B) || levpos(2B)`.
-- LEVPOS - 2 bytes encoding `level` (bits 13-15), `flagauth` (bit 12), `pos` (bits 0-11). `flagauth` must be 0.
+- LEVPOS - 2 bytes encoding `id` (bit 15), `level` (bits 12-14), `pos` (bits 1-11), `query/reply` (bit 0). `id` must be 0.
 - PKHASH - root hash of the Merkle tree (L0)
 
 ## REPLYL variants (by level)
@@ -176,12 +176,13 @@ One key is one-time ephemeral key and second is authentication key.
 - CIPHERTEXT - mceliece6688128 ciphertext
 
 
-### REPLY0 - 166-bytes
+### REPLY0 - 198-bytes
 
 <table><thead>
   <tr>
     <th colspan="3">HEADER</th>
     <th colspan="4">ENCRYPTED DATA</th>
+    <th colspan="1">PLAINTEXT DATA</th>
   </tr></thead>
 <tbody>
   <tr>
@@ -192,6 +193,7 @@ One key is one-time ephemeral key and second is authentication key.
     <td>KEY1234QUERY</td>
     <td>KEY1234REPLY</td>
     <td>NONCE1234</td>
+    <td>KEY-DERIVATION SEED</td>
   </tr>
   <tr>
     <td>8B</td>
@@ -201,13 +203,15 @@ One key is one-time ephemeral key and second is authentication key.
     <td>32B</td>
     <td>32B</td>
     <td>22B</td>
+    <td>32B</td>
   </tr>
 </tbody>
 </table>
 
 - KEY1234QUERY - server-generated client's encryption key for next phases 1/2/3/4
 - KEY1234REPLY - server-generated server's encryption key for next phases 1/2/3/4
-- NONCE1234 - server-generated nonce prefix for next phases 1/2/3/4
+- NONCE1234 - server-generated nonce prefix used for next phases 1/2/3/4
+- KEY-DERIVATION SEED - server-generated seed used to derive the reply encryption key
 
 ## PHASE 1
 
